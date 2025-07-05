@@ -73,11 +73,11 @@ const Index = () => {
         <div className="max-w-6xl mx-auto text-center">
           <div className="mb-8">
             <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
-              Unfulfilled Jobs
-              <br />
               <span className="bg-gradient-primary bg-clip-text text-transparent">
-                To Be Done
+                Gaplytics
               </span>
+              <br />
+              Market Gap Analysis
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Discover untapped market opportunities with AI-powered insights into customer needs that remain unsolved.

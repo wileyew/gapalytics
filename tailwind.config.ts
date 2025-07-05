@@ -61,7 +61,28 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				/* Apple-inspired colors */
+				apple: {
+					gray: 'hsl(var(--apple-gray))',
+					'light-gray': 'hsl(var(--apple-light-gray))',
+					blue: 'hsl(var(--apple-blue))',
+					green: 'hsl(var(--apple-green))',
+					orange: 'hsl(var(--apple-orange))'
 				}
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-hero': 'var(--gradient-hero)',
+				'gradient-card': 'var(--gradient-card)'
+			},
+			boxShadow: {
+				'apple': 'var(--shadow-apple)',
+				'card': 'var(--shadow-card)',
+				'hover': 'var(--shadow-hover)'
+			},
+			transitionTimingFunction: {
+				'apple': 'var(--transition-apple)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

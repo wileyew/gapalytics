@@ -1,4 +1,17 @@
-# Welcome to your Lovable project
+# Gaplytics - AI-Powered Market Gap Analysis
+
+## Project Overview
+
+Gaplytics is an intelligent market research platform that uses AI to identify untapped business opportunities and market gaps. The application provides comprehensive market analysis through interactive visualizations, competitive intelligence, and AI-powered insights.
+
+## Key Features
+
+🔍 **AI-Powered Search**: Advanced search with OpenAI integration for intelligent market opportunity discovery  
+📊 **Market Heatmaps**: Interactive bubble charts showing opportunity intensity vs. competition levels  
+🧠 **AI Insights**: Automated market gap identification and competitive landscape analysis  
+📈 **Real-time Suggestions**: Dynamic search recommendations powered by AI  
+🎯 **Opportunity Scoring**: Advanced algorithms to score and rank business opportunities  
+💡 **Search Optimization**: Intelligent suggestions for better search queries  
 
 ## Project info
 
@@ -32,9 +45,31 @@ cd <YOUR_PROJECT_NAME>
 # Step 3: Install the necessary dependencies.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Set up environment variables (required for AI features)
+cp .env.example .env
+# Edit .env and add your OpenAI API key
+
+# Step 5: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
+
+## OpenAI API Setup
+
+To enable AI-powered features, you'll need an OpenAI API key:
+
+1. **Get API Key**: Visit [OpenAI Platform](https://platform.openai.com/api-keys) and create an API key
+2. **Configure Environment**: Copy `.env.example` to `.env` and add your key:
+   ```
+   VITE_OPENAI_API_KEY=your_actual_api_key_here
+   ```
+3. **Security Note**: Never commit your actual API key to version control
+
+### API Usage
+
+The application uses OpenAI for:
+- **GPT-4**: Advanced market analysis and gap identification
+- **GPT-3.5-turbo**: Real-time search suggestions
+- **Fallback Mode**: If API fails, the app falls back to enhanced keyword matching
 
 **Edit a file directly in GitHub**
 
@@ -54,11 +89,38 @@ npm run dev
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Core Technologies
+- **Vite** - Fast build tool and development server
+- **TypeScript** - Type-safe JavaScript development
+- **React** - Component-based UI framework
+- **shadcn-ui** - Modern component library
+- **Tailwind CSS** - Utility-first CSS framework
+
+### AI & Data Visualization
+- **OpenAI API** - GPT-4 and GPT-3.5 for market analysis
+- **Recharts** - Interactive data visualization charts
+- **Tanstack Query** - Async state management
+
+### Backend & Authentication
+- **Supabase** - Backend-as-a-Service platform
+- **React Router** - Client-side routing
+
+## Application Structure
+
+```
+src/
+├── components/           # React components
+│   ├── ui/              # Reusable UI components
+│   ├── MarketHeatmap.tsx    # Interactive heatmap visualization
+│   ├── MarketInsights.tsx   # AI insights and analysis display
+│   └── SearchBar.tsx        # Enhanced search with AI suggestions
+├── lib/
+│   └── openai.ts        # OpenAI API integration
+├── pages/
+│   └── Index.tsx        # Main application page
+└── data/
+    └── jobsToBeDone.ts  # Market opportunity data
+```
 
 ## How can I deploy this project?
 

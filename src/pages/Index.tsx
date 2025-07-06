@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { SearchBar } from '@/components/SearchBar';
 import { JobCard } from '@/components/JobCard';
 import { JobDetails } from '@/components/JobDetails';
+import { Header } from '@/components/Header';
 import { jobsToBeDone, JobToBeDone, industries, tags } from '@/data/jobsToBeDone';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -62,6 +63,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-hero relative">
+      <Header />
       {/* Hero Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-5"

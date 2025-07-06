@@ -9,6 +9,10 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signInWithGoogle: () => Promise<{ error: AuthError | null }>;
+  signInWithGitHub: () => Promise<{ error: AuthError | null }>;
+  signInWithDiscord: () => Promise<{ error: AuthError | null }>;
+  signInWithTwitter: () => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -117,6 +121,122 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Google sign in failed",
+          description: error.message,
+        });
+      }
+
+      return { error };
+    } catch (error) {
+      const authError = error as AuthError;
+      toast({
+        variant: "destructive",
+        title: "Google sign in failed",
+        description: authError.message,
+      });
+      return { error: authError };
+    }
+  };
+
+  const signInWithGitHub = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "GitHub sign in failed",
+          description: error.message,
+        });
+      }
+
+      return { error };
+    } catch (error) {
+      const authError = error as AuthError;
+      toast({
+        variant: "destructive",
+        title: "GitHub sign in failed",
+        description: authError.message,
+      });
+      return { error: authError };
+    }
+  };
+
+  const signInWithDiscord = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Discord sign in failed",
+          description: error.message,
+        });
+      }
+
+      return { error };
+    } catch (error) {
+      const authError = error as AuthError;
+      toast({
+        variant: "destructive",
+        title: "Discord sign in failed",
+        description: authError.message,
+      });
+      return { error: authError };
+    }
+  };
+
+  const signInWithTwitter = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'twitter',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Twitter sign in failed",
+          description: error.message,
+        });
+      }
+
+      return { error };
+    } catch (error) {
+      const authError = error as AuthError;
+      toast({
+        variant: "destructive",
+        title: "Twitter sign in failed",
+        description: authError.message,
+      });
+      return { error: authError };
+    }
+  };
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -135,6 +255,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     loading,
     signUp,
     signIn,
+    signInWithGoogle,
+    signInWithGitHub,
+    signInWithDiscord,
+    signInWithTwitter,
     signOut,
   };
 

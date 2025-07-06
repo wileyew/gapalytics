@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { SocialAuth } from '@/components/SocialAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -62,6 +63,8 @@ export const SignupForm = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <SocialAuth mode="signup" />
+          
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

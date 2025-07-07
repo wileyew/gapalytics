@@ -63,10 +63,10 @@ export const analyzeSearchQuery = async (
           
           Respond with a JSON object containing:
           - relevantOpportunities: Array of opportunity IDs that match the query
-          - marketGaps: Array of new market gaps identified based on the query
+          - marketGaps: Array of market gap objects with: id, title, description, gapSize (1-10), urgency (1-10), difficulty (1-10), industry, estimatedMarketSize, keyInsights (array of strings)
           - searchSuggestion: Better search suggestion if the original query is too generic (null if query is good)
-          - heatmapData: Array of data points for visualization
-          - competitiveAnalysis: Analysis of market competition and trends
+          - heatmapData: Array of heatmap objects with: industry, opportunity, intensity (0-100), revenue (number), competition (0-100), x, y coordinates
+          - competitiveAnalysis: Object with: oversaturatedAreas (array), underservedAreas (array), emergingTrends (array), riskFactors (array)
           
           Existing opportunities data: ${JSON.stringify(existingOpportunities, null, 2)}`
         },
@@ -98,21 +98,65 @@ export const analyzeSearchQuery = async (
     
     // Filter existing opportunities based on AI analysis
     const relevantOpportunities = existingOpportunities.filter(opp => 
-      analysis.relevantOpportunities.includes(opp.id) || 
+      analysis.relevantOpportunities?.includes(opp.id) || 
       scoreOpportunityRelevance(query, opp) > 0.6
     );
 
+    // Validate and transform marketGaps if they're simple strings
+    const marketGaps = Array.isArray(analysis.marketGaps) ? analysis.marketGaps.map((gap, index) => {
+      if (typeof gap === 'string') {
+        // Transform simple string to proper MarketGap object
+        return {
+          id: `gap-${index + 1}`,
+          title: gap,
+          description: `Market opportunity for ${gap.toLowerCase()}`,
+          gapSize: 7,
+          urgency: 6,
+          difficulty: 5,
+          industry: relevantOpportunities[0]?.industry || 'Technology',
+          estimatedMarketSize: '$2.5B',
+          keyInsights: ['Growing market demand', 'Technology enablers available']
+        };
+      }
+      return gap;
+    }) : [];
+
+    // Validate and transform heatmapData if it has wrong structure
+    const heatmapData = Array.isArray(analysis.heatmapData) ? analysis.heatmapData.map((item, index) => {
+      if (item.dimension) {
+        // Transform dimension-based data to proper HeatmapData
+        return {
+          industry: 'Technology',
+          opportunity: item.dimension,
+          intensity: item.intensity * 10, // Scale 0-10 to 0-100
+          revenue: item.intensity * 1000000, // Convert to revenue estimate
+          competition: 50, // Default competition level
+          x: index % 5,
+          y: Math.floor(index / 5)
+        };
+      }
+      return item;
+    }) : [];
+
+    // Validate competitiveAnalysis
+    const competitiveAnalysis = typeof analysis.competitiveAnalysis === 'string' ? {
+      oversaturatedAreas: ['General market'],
+      underservedAreas: ['Specialized solutions'],
+      emergingTrends: ['AI Integration', 'Automation'],
+      riskFactors: ['Market competition', 'Technology changes']
+    } : (analysis.competitiveAnalysis || {
+      oversaturatedAreas: [],
+      underservedAreas: [],
+      emergingTrends: [],
+      riskFactors: []
+    });
+
     return {
       relevantOpportunities,
-      marketGaps: analysis.marketGaps || [],
+      marketGaps,
       searchSuggestion: !isGoodQuery ? analysis.searchSuggestion : null,
-      heatmapData: analysis.heatmapData || generateFallbackHeatmapData(relevantOpportunities),
-      competitiveAnalysis: analysis.competitiveAnalysis || {
-        oversaturatedAreas: [],
-        underservedAreas: [],
-        emergingTrends: [],
-        riskFactors: []
-      }
+      heatmapData: heatmapData.length > 0 ? heatmapData : generateFallbackHeatmapData(relevantOpportunities),
+      competitiveAnalysis
     };
 
   } catch (error) {

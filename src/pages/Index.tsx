@@ -6,8 +6,9 @@ import { Header } from '@/components/Header';
 import { MarketHeatmap } from '@/components/MarketHeatmap';
 import { MarketInsights } from '@/components/MarketInsights';
 import { jobsToBeDone, JobToBeDone, industries, tags } from '@/data/jobsToBeDone';
-import { analyzeSearchQuery, type SearchAnalysis } from '@/lib/openai';
+import { analyzeSearchQuery, type SearchAnalysis, type MarketGap } from '@/lib/openai';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, Lightbulb, Target, DollarSign, BarChart3, Brain } from 'lucide-react';
@@ -21,6 +22,7 @@ const Index = () => {
   const [selectedTag, setSelectedTag] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('opportunities');
   const [hasSearched, setHasSearched] = useState(false);
+  const [selectedGap, setSelectedGap] = useState<MarketGap | null>(null);
 
   const filteredJobs = useMemo(() => {
     let filtered = searchAnalysis?.relevantOpportunities.length ? 
@@ -43,6 +45,7 @@ const Index = () => {
     
     try {
       const analysis = await analyzeSearchQuery(query, jobsToBeDone);
+      console.log('Search analysis result:', analysis); // Debug log
       setSearchAnalysis(analysis);
       
       // Auto-switch to heatmap tab if we have good data
@@ -89,6 +92,101 @@ const Index = () => {
     const value = parseFloat(job.profitPotential.revenue.replace(/[^0-9.]/g, ''));
     return acc + value;
   }, 0) / jobsToBeDone.length;
+
+  // Generate competitive analysis from opportunities data
+  const generateCompetitiveAnalysis = () => {
+    const industries = [...new Set(jobsToBeDone.map(job => job.industry))];
+    const competitionLevels = jobsToBeDone.map(job => job.competitionLevel);
+    
+    // Analyze competition levels
+    const highCompetition = jobsToBeDone.filter(job => job.competitionLevel === 'High');
+    const lowCompetition = jobsToBeDone.filter(job => job.competitionLevel === 'Low');
+    
+    // Identify oversaturated areas (high competition industries)
+    const oversaturatedAreas = [...new Set(highCompetition.map(job => job.industry))];
+    
+    // Identify underserved areas (low competition industries)
+    const underservedAreas = [...new Set(lowCompetition.map(job => job.industry))];
+    
+    // Extract emerging trends from tags
+    const allTags = jobsToBeDone.flatMap(job => job.tags);
+    const tagCounts = allTags.reduce((acc, tag) => {
+      acc[tag] = (acc[tag] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const emergingTrends = Object.entries(tagCounts)
+      .filter(([_, count]) => count >= 2)
+      .map(([tag, _]) => tag);
+    
+    // Identify risk factors
+    const riskFactors = [
+      'Market saturation in popular industries',
+      'Technology disruption',
+      'Regulatory changes',
+      'Economic uncertainty'
+    ];
+    
+    return {
+      oversaturatedAreas,
+      underservedAreas,
+      emergingTrends,
+      riskFactors
+    };
+  };
+
+  // Handle market gap click
+  const handleGapClick = (gap: MarketGap) => {
+    setSelectedGap(gap);
+    setActiveTab('opportunities');
+    // Filter jobs to show related opportunities
+    const gapKeywords = gap.title.toLowerCase().split(' ');
+    const relatedJobs = jobsToBeDone.filter(job => {
+      const jobText = `${job.title} ${job.description} ${job.industry} ${job.tags.join(' ')}`.toLowerCase();
+      return gapKeywords.some(keyword => jobText.includes(keyword));
+    });
+    setSearchAnalysis(prev => prev ? {
+      ...prev,
+      relevantOpportunities: relatedJobs
+    } : null);
+  };
+
+  // Handle competitive area click
+  const handleCompetitiveAreaClick = (area: string, type: 'oversaturated' | 'underserved' | 'trend' | 'risk') => {
+    setActiveTab('opportunities');
+    
+    let filteredJobs: JobToBeDone[] = [];
+    
+    switch (type) {
+      case 'oversaturated':
+        filteredJobs = jobsToBeDone.filter(job => 
+          job.industry === area || job.competitionLevel === 'High'
+        );
+        break;
+      case 'underserved':
+        filteredJobs = jobsToBeDone.filter(job => 
+          job.industry === area || job.competitionLevel === 'Low'
+        );
+        break;
+      case 'trend':
+        filteredJobs = jobsToBeDone.filter(job => 
+          job.tags.includes(area)
+        );
+        break;
+      case 'risk':
+        // For risk factors, show jobs that might be affected
+        filteredJobs = jobsToBeDone.filter(job => 
+          job.industry.toLowerCase().includes(area.toLowerCase()) ||
+          job.tags.some(tag => tag.toLowerCase().includes(area.toLowerCase()))
+        );
+        break;
+    }
+    
+    setSearchAnalysis(prev => prev ? {
+      ...prev,
+      relevantOpportunities: filteredJobs
+    } : null);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-hero relative">
@@ -232,6 +330,29 @@ const Index = () => {
                 </div>
               </div>
 
+              {/* Selected Gap Indicator */}
+              {selectedGap && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-blue-900">Showing opportunities related to: {selectedGap.title}</h3>
+                      <p className="text-sm text-blue-700 mt-1">{selectedGap.description}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedGap(null);
+                        setSearchAnalysis(null);
+                      }}
+                      className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                    >
+                      Clear Filter
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Jobs Grid */}
               {filteredJobs.length === 0 && hasSearched ? (
                 <div className="text-center py-12">
@@ -256,6 +377,14 @@ const Index = () => {
                   data={searchAnalysis.heatmapData}
                   title="Market Opportunity Analysis"
                 />
+              ) : hasSearched ? (
+                <Card className="p-12 text-center">
+                  <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Heatmap Data Available</h3>
+                  <p className="text-muted-foreground mb-4">
+                    The search didn't generate heatmap data. Try a more specific search query.
+                  </p>
+                </Card>
               ) : (
                 <Card className="p-12 text-center">
                   <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -273,15 +402,36 @@ const Index = () => {
                   marketGaps={searchAnalysis.marketGaps}
                   competitiveAnalysis={searchAnalysis.competitiveAnalysis}
                   searchSuggestion={searchAnalysis.searchSuggestion}
+                  allJobs={jobsToBeDone}
+                  onGapClick={handleGapClick}
+                  onCompetitiveAreaClick={handleCompetitiveAreaClick}
                 />
-              ) : (
+              ) : hasSearched ? (
                 <Card className="p-12 text-center">
                   <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2">No AI Insights Available</h3>
                   <p className="text-muted-foreground mb-4">
-                    Search for market opportunities to get AI-powered insights, gap analysis, and competitive intelligence.
+                    The search didn't generate insights. Try a more specific search query.
                   </p>
                 </Card>
+              ) : (
+                <div className="space-y-6">
+                  <Card className="p-12 text-center">
+                    <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">No AI Insights Available</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Search for market opportunities to get AI-powered insights, gap analysis, and competitive intelligence.
+                    </p>
+                  </Card>
+                  
+                  {/* Show competitive analysis based on opportunities data */}
+                  <MarketInsights
+                    marketGaps={[]}
+                    competitiveAnalysis={generateCompetitiveAnalysis()}
+                    allJobs={jobsToBeDone}
+                    onCompetitiveAreaClick={handleCompetitiveAreaClick}
+                  />
+                </div>
               )}
             </TabsContent>
           </Tabs>

@@ -16,9 +16,36 @@ interface HeatmapPoint extends HeatmapData {
 
 export const MarketHeatmap = ({ data, title = "Market Opportunity Heatmap" }: MarketHeatmapProps) => {
   const heatmapPoints = useMemo(() => {
-    return data.map((point): HeatmapPoint => {
+    return data.map((point, index): HeatmapPoint => {
+      // Handle different data structures from API
+      let processedPoint = point;
+      
+      // If the point has 'dimension' property (from API response), transform it
+      if ('dimension' in point && typeof point.dimension === 'string') {
+        processedPoint = {
+          industry: 'Technology',
+          opportunity: point.dimension,
+          intensity: (point.intensity || 0) * 10, // Scale 0-10 to 0-100
+          revenue: (point.intensity || 0) * 1000000, // Convert to revenue estimate
+          competition: 50, // Default competition level
+          x: index % 5,
+          y: Math.floor(index / 5)
+        };
+      }
+      
+      // Ensure all required properties exist with fallbacks
+      const safePoint = {
+        industry: processedPoint.industry || 'Technology',
+        opportunity: processedPoint.opportunity || `Opportunity ${index + 1}`,
+        intensity: processedPoint.intensity || 50,
+        revenue: processedPoint.revenue || 1000000,
+        competition: processedPoint.competition || 50,
+        x: processedPoint.x ?? (index % 5),
+        y: processedPoint.y ?? Math.floor(index / 5)
+      };
+      
       // Size based on revenue potential
-      const size = Math.max(50, Math.min(300, point.revenue * 8));
+      const size = Math.max(50, Math.min(300, safePoint.revenue * 8));
       
       // Color based on opportunity intensity
       const getColor = (intensity: number): string => {
@@ -30,14 +57,14 @@ export const MarketHeatmap = ({ data, title = "Market Opportunity Heatmap" }: Ma
       };
       
       return {
-        ...point,
+        ...safePoint,
         size,
-        color: getColor(point.intensity)
+        color: getColor(safePoint.intensity)
       };
     });
   }, [data]);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: HeatmapPoint }> }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (

@@ -2,20 +2,76 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, TrendingDown, AlertTriangle, Lightbulb, Target, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, TrendingDown, AlertTriangle, Lightbulb, Target, Zap, ExternalLink, Users } from 'lucide-react';
 import type { MarketGap, CompetitiveAnalysis } from '@/lib/openai';
+import type { JobToBeDone } from '@/data/jobsToBeDone';
 
 interface MarketInsightsProps {
-  marketGaps: MarketGap[];
-  competitiveAnalysis: CompetitiveAnalysis;
+  marketGaps: (MarketGap | string)[];
+  competitiveAnalysis: CompetitiveAnalysis | string;
   searchSuggestion?: string | null;
+  allJobs?: JobToBeDone[];
+  onGapClick?: (gap: MarketGap) => void;
+  onCompetitiveAreaClick?: (area: string, type: 'oversaturated' | 'underserved' | 'trend' | 'risk') => void;
 }
 
 export const MarketInsights = ({ 
   marketGaps, 
   competitiveAnalysis, 
-  searchSuggestion 
+  searchSuggestion,
+  allJobs = [],
+  onGapClick,
+  onCompetitiveAreaClick
 }: MarketInsightsProps) => {
+  // Transform marketGaps if they're simple strings from API
+  const processedMarketGaps = marketGaps.map((gap: MarketGap | string, index) => {
+    if (typeof gap === 'string') {
+      return {
+        id: `gap-${index + 1}`,
+        title: gap,
+        description: `Market opportunity for ${gap.toLowerCase()}`,
+        gapSize: 7,
+        urgency: 6,
+        difficulty: 5,
+        industry: 'Technology',
+        estimatedMarketSize: '$2.5B',
+        keyInsights: ['Growing market demand', 'Technology enablers available']
+      };
+    }
+    return gap;
+  });
+
+  // Ensure competitiveAnalysis has the right structure
+  const processedCompetitiveAnalysis = typeof competitiveAnalysis === 'string' ? {
+    oversaturatedAreas: ['General market'],
+    underservedAreas: ['Specialized solutions'],
+    emergingTrends: ['AI Integration', 'Automation'],
+    riskFactors: ['Market competition', 'Technology changes']
+  } : competitiveAnalysis;
+
+  // Function to find related jobs for a market gap
+  const getRelatedJobs = (gap: MarketGap): JobToBeDone[] => {
+    const gapKeywords = gap.title.toLowerCase().split(' ');
+    const gapDescription = gap.description.toLowerCase();
+    
+    return allJobs.filter(job => {
+      const jobText = `${job.title} ${job.description} ${job.industry} ${job.tags.join(' ')}`.toLowerCase();
+      const jobPainPoints = job.painPoints.join(' ').toLowerCase();
+      
+      // Check if any gap keywords match job content
+      const keywordMatch = gapKeywords.some(keyword => 
+        jobText.includes(keyword) || jobPainPoints.includes(keyword)
+      );
+      
+      // Check if gap description relates to job
+      const descriptionMatch = gapDescription.split(' ').some(word => 
+        jobText.includes(word) || jobPainPoints.includes(word)
+      );
+      
+      return keywordMatch || descriptionMatch;
+    });
+  };
   const getDifficultyColor = (difficulty: number) => {
     if (difficulty >= 8) return 'text-red-600';
     if (difficulty >= 6) return 'text-orange-600';
@@ -49,7 +105,7 @@ export const MarketInsights = ({
           Identified Market Gaps
         </h3>
         
-        {marketGaps.length === 0 ? (
+        {processedMarketGaps.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
               <p className="text-muted-foreground text-center">
@@ -59,24 +115,40 @@ export const MarketInsights = ({
           </Card>
         ) : (
           <div className="grid gap-4">
-            {marketGaps.map((gap) => (
-              <Card key={gap.id} className="relative overflow-hidden">
-                <div 
-                  className={`absolute top-0 left-0 w-1 h-full ${getGapSizeColor(gap.gapSize)}`}
-                ></div>
-                <CardHeader className="pl-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{gap.title}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {gap.description}
-                      </CardDescription>
+            {processedMarketGaps.map((gap) => {
+              const relatedJobs = getRelatedJobs(gap);
+              return (
+                <Card key={gap.id} className="relative overflow-hidden hover:shadow-hover transition-all duration-apple cursor-pointer" 
+                      onClick={() => onGapClick?.(gap)}>
+                  <div 
+                    className={`absolute top-0 left-0 w-1 h-full ${getGapSizeColor(gap.gapSize)}`}
+                  ></div>
+                  <CardHeader className="pl-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CardTitle className="text-lg">{gap.title}</CardTitle>
+                          {onGapClick && (
+                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
+                        <CardDescription className="mt-1">
+                          {gap.description}
+                        </CardDescription>
+                        {relatedJobs.length > 0 && (
+                          <div className="flex items-center gap-2 mt-3">
+                            <Users className="h-4 w-4 text-blue-500" />
+                            <span className="text-sm text-blue-600">
+                              {relatedJobs.length} related opportunity{relatedJobs.length !== 1 ? 'ies' : 'y'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="ml-4">
+                        {gap.industry}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="ml-4">
-                      {gap.industry}
-                    </Badge>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
                 <CardContent className="pl-6">
                   <div className="grid md:grid-cols-3 gap-4 mb-4">
                     <div>
@@ -120,7 +192,8 @@ export const MarketInsights = ({
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            );
+          })}
           </div>
         )}
       </div>
@@ -145,19 +218,23 @@ export const MarketInsights = ({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {competitiveAnalysis.oversaturatedAreas.length === 0 ? (
+              {processedCompetitiveAnalysis.oversaturatedAreas.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No oversaturated areas identified
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {competitiveAnalysis.oversaturatedAreas.map((area, index) => (
+                  {processedCompetitiveAnalysis.oversaturatedAreas.map((area, index) => (
                     <div 
                       key={index}
-                      className="flex items-center gap-2 p-2 bg-red-50 rounded-lg border-l-2 border-red-500"
+                      className="flex items-center gap-2 p-2 bg-red-50 rounded-lg border-l-2 border-red-500 hover:bg-red-100 cursor-pointer transition-colors"
+                      onClick={() => onCompetitiveAreaClick?.(area, 'oversaturated')}
                     >
                       <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
                       <span className="text-sm text-red-700">{area}</span>
+                      {onCompetitiveAreaClick && (
+                        <ExternalLink className="h-3 w-3 text-red-500 ml-auto" />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -177,19 +254,23 @@ export const MarketInsights = ({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {competitiveAnalysis.underservedAreas.length === 0 ? (
+              {processedCompetitiveAnalysis.underservedAreas.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No underserved areas identified
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {competitiveAnalysis.underservedAreas.map((area, index) => (
+                  {processedCompetitiveAnalysis.underservedAreas.map((area, index) => (
                     <div 
                       key={index}
-                      className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border-l-2 border-green-500"
+                      className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border-l-2 border-green-500 hover:bg-green-100 cursor-pointer transition-colors"
+                      onClick={() => onCompetitiveAreaClick?.(area, 'underserved')}
                     >
                       <Target className="h-4 w-4 text-green-500 flex-shrink-0" />
                       <span className="text-sm text-green-700">{area}</span>
+                      {onCompetitiveAreaClick && (
+                        <ExternalLink className="h-3 w-3 text-green-500 ml-auto" />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -212,13 +293,18 @@ export const MarketInsights = ({
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {competitiveAnalysis.emergingTrends.length === 0 ? (
+                {processedCompetitiveAnalysis.emergingTrends.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     No emerging trends identified
                   </p>
                 ) : (
-                  competitiveAnalysis.emergingTrends.map((trend, index) => (
-                    <Badge key={index} variant="default" className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+                  processedCompetitiveAnalysis.emergingTrends.map((trend, index) => (
+                    <Badge 
+                      key={index} 
+                      variant="default" 
+                      className="bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer"
+                      onClick={() => onCompetitiveAreaClick?.(trend, 'trend')}
+                    >
                       {trend}
                     </Badge>
                   ))
@@ -239,18 +325,22 @@ export const MarketInsights = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {competitiveAnalysis.riskFactors.length === 0 ? (
+                {processedCompetitiveAnalysis.riskFactors.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     No specific risk factors identified
                   </p>
                 ) : (
-                  competitiveAnalysis.riskFactors.map((risk, index) => (
+                  processedCompetitiveAnalysis.riskFactors.map((risk, index) => (
                     <div 
                       key={index}
-                      className="flex items-center gap-2 text-sm text-orange-700"
+                      className="flex items-center gap-2 text-sm text-orange-700 hover:bg-orange-50 p-2 rounded cursor-pointer transition-colors"
+                      onClick={() => onCompetitiveAreaClick?.(risk, 'risk')}
                     >
                       <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0"></div>
                       {risk}
+                      {onCompetitiveAreaClick && (
+                        <ExternalLink className="h-3 w-3 text-orange-500 ml-auto" />
+                      )}
                     </div>
                   ))
                 )}

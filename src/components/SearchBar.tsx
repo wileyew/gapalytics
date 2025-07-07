@@ -56,6 +56,7 @@ export const SearchBar = ({
     if (query.trim()) {
       onSearch(query.trim());
       setShowSuggestions(false);
+      setQuery(''); // Clear the search input after search
     }
   };
 
@@ -64,6 +65,7 @@ export const SearchBar = ({
     setQuery(cleanSuggestion);
     onSearch(cleanSuggestion);
     setShowSuggestions(false);
+    setQuery(''); // Clear the search input after selection
   };
 
   const exampleQueries = [

@@ -103,7 +103,7 @@ export const analyzeSearchQuery = async (
     );
 
     // Validate and transform marketGaps if they're simple strings
-    const marketGaps = Array.isArray(analysis.marketGaps) ? analysis.marketGaps.map((gap, index) => {
+    let marketGaps = Array.isArray(analysis.marketGaps) ? analysis.marketGaps.map((gap, index) => {
       if (typeof gap === 'string') {
         // Transform simple string to proper MarketGap object
         return {
@@ -120,6 +120,27 @@ export const analyzeSearchQuery = async (
       }
       return gap;
     }) : [];
+    
+    // Generate fallback market gaps if none provided
+    if (marketGaps.length === 0 && relevantOpportunities.length > 0) {
+      marketGaps = [
+        {
+          id: 'gap-1',
+          title: `Enhanced ${query} Solutions`,
+          description: `Market opportunity for improved solutions in the ${query} space`,
+          gapSize: 7,
+          urgency: 6,
+          difficulty: 5,
+          industry: relevantOpportunities[0]?.industry || 'Technology',
+          estimatedMarketSize: '$2.5B',
+          keyInsights: [
+            'Limited current solutions',
+            'Growing market demand',
+            'Technology enablers available'
+          ]
+        }
+      ];
+    }
 
     // Validate and transform heatmapData if it has wrong structure
     const heatmapData = Array.isArray(analysis.heatmapData) ? analysis.heatmapData.map((item, index) => {
@@ -151,11 +172,16 @@ export const analyzeSearchQuery = async (
       riskFactors: []
     });
 
+    // Always generate heatmap data - either from API or fallback
+    const finalHeatmapData = heatmapData.length > 0 ? heatmapData : generateFallbackHeatmapData(relevantOpportunities);
+    
+    console.log('Final heatmap data:', finalHeatmapData); // Debug log
+    
     return {
       relevantOpportunities,
       marketGaps,
       searchSuggestion: !isGoodQuery ? analysis.searchSuggestion : null,
-      heatmapData: heatmapData.length > 0 ? heatmapData : generateFallbackHeatmapData(relevantOpportunities),
+      heatmapData: finalHeatmapData,
       competitiveAnalysis
     };
 

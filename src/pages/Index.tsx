@@ -25,14 +25,16 @@ const Index = () => {
   const [selectedGap, setSelectedGap] = useState<MarketGap | null>(null);
 
   const filteredJobs = useMemo(() => {
-    let filtered = searchAnalysis?.relevantOpportunities.length ? 
+    // If we have search results, use them; otherwise use all jobs
+    let filtered = searchAnalysis?.relevantOpportunities && searchAnalysis.relevantOpportunities.length > 0 ? 
       searchAnalysis.relevantOpportunities : jobsToBeDone;
     
-    if (selectedIndustry) {
+    // Apply additional filters only if we're not in a filtered state from API
+    if (selectedIndustry && (!searchAnalysis?.relevantOpportunities || searchAnalysis.relevantOpportunities.length === 0)) {
       filtered = filtered.filter(job => job.industry === selectedIndustry);
     }
     
-    if (selectedTag) {
+    if (selectedTag && (!searchAnalysis?.relevantOpportunities || searchAnalysis.relevantOpportunities.length === 0)) {
       filtered = filtered.filter(job => job.tags.includes(selectedTag));
     }
     
@@ -46,11 +48,23 @@ const Index = () => {
     try {
       const analysis = await analyzeSearchQuery(query, jobsToBeDone);
       console.log('Search analysis result:', analysis); // Debug log
+      console.log('Heatmap data:', analysis.heatmapData); // Debug heatmap
+      console.log('Market gaps:', analysis.marketGaps); // Debug gaps
+      console.log('Relevant opportunities:', analysis.relevantOpportunities); // Debug opportunities
       setSearchAnalysis(analysis);
       
-      // Auto-switch to heatmap tab if we have good data
-      if (analysis.heatmapData.length > 0) {
+      // Reset filters when new search is performed
+      setSelectedIndustry('');
+      setSelectedTag('');
+      setSelectedGap(null);
+      
+      // Auto-switch to heatmap tab if we have good data, otherwise go to insights
+      if (analysis.heatmapData && analysis.heatmapData.length > 0) {
         setActiveTab('heatmap');
+      } else if (analysis.marketGaps && analysis.marketGaps.length > 0) {
+        setActiveTab('insights');
+      } else {
+        setActiveTab('opportunities');
       }
     } catch (error) {
       console.error('Search failed:', error);
@@ -266,17 +280,49 @@ const Index = () => {
         <div className="max-w-7xl mx-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="opportunities" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="opportunities" 
+                className="flex items-center gap-2 relative"
+              >
                 <Target className="h-4 w-4" />
                 Opportunities
+                {searchAnalysis?.relevantOpportunities && searchAnalysis.relevantOpportunities.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-xs bg-green-100 text-green-700">
+                    {searchAnalysis.relevantOpportunities.length}
+                  </Badge>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="heatmap" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="heatmap" 
+                className="flex items-center gap-2 relative"
+              >
                 <BarChart3 className="h-4 w-4" />
                 Market Heatmap
+                {searchAnalysis?.heatmapData && searchAnalysis.heatmapData.length > 0 ? (
+                  <Badge variant="secondary" className="ml-1 text-xs bg-blue-100 text-blue-700">
+                    {searchAnalysis.heatmapData.length}
+                  </Badge>
+                ) : hasSearched && searchAnalysis && (
+                  <Badge variant="outline" className="ml-1 text-xs text-muted-foreground">
+                    No data
+                  </Badge>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="insights" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="insights" 
+                className="flex items-center gap-2 relative"
+              >
                 <Brain className="h-4 w-4" />
                 AI Insights
+                {searchAnalysis?.marketGaps && searchAnalysis.marketGaps.length > 0 ? (
+                  <Badge variant="secondary" className="ml-1 text-xs bg-purple-100 text-purple-700">
+                    {searchAnalysis.marketGaps.length}
+                  </Badge>
+                ) : hasSearched && searchAnalysis && (
+                  <Badge variant="outline" className="ml-1 text-xs text-muted-foreground">
+                    No data
+                  </Badge>
+                )}
               </TabsTrigger>
             </TabsList>
 

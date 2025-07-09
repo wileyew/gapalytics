@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Gaplytics is an intelligent market research platform that uses AI to identify untapped business opportunities and market gaps. The application provides comprehensive market analysis through interactive visualizations, competitive intelligence, and AI-powered insights.
+Gapalytics is an intelligent market research platform that uses AI to identify untapped business opportunities and market gaps. The application provides comprehensive market analysis through interactive visualizations, competitive intelligence, and AI-powered insights.
 
 ## Key Features
 

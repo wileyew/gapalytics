@@ -250,7 +250,7 @@ After deployment, verify:
 
 ## 🎉 Success!
 
-Your Gaplytics application is now deployed on AWS Amplify!
+Your Gapalytics application is now deployed on AWS Amplify!
 
 **Next Steps:**
 1. Test all functionality

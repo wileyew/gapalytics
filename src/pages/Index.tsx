@@ -217,7 +217,7 @@ const Index = () => {
           <div className="mb-8">
             <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
               <span className="bg-gradient-primary bg-clip-text text-transparent">
-                Gaplytics
+                Gapalytics
               </span>
               <br />
               Market Gap Analysis

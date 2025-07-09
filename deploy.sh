@@ -3,7 +3,7 @@
 # 🚀 AWS Amplify Deployment Script
 # This script prepares your application for AWS Amplify deployment
 
-echo "🚀 Preparing Gaplytics for AWS Amplify deployment..."
+echo "🚀 Preparing Gapalytics for AWS Amplify deployment..."
 
 # Check if we're in the right directory
 if [ ! -f "package.json" ]; then

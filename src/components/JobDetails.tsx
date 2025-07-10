@@ -2,7 +2,7 @@ import { JobToBeDone } from '@/data/jobsToBeDone';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X, ExternalLink, CheckCircle, AlertCircle, DollarSign, TrendingUp } from 'lucide-react';
+import { X, ExternalLink, CheckCircle, AlertCircle, DollarSign, TrendingUp, Building, Users, Target, Zap, Lightbulb, Shield } from 'lucide-react';
 
 interface JobDetailsProps {
   job: JobToBeDone;
@@ -116,6 +116,138 @@ export const JobDetails = ({ job, onClose }: JobDetailsProps) => {
                   {tag}
                 </Badge>
               ))}
+            </div>
+          </div>
+
+          {/* Competitive Landscape */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4 text-foreground flex items-center gap-2">
+              <Building className="h-5 w-5 text-blue-600" />
+              Competitive Landscape
+            </h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              {job.competitors.map((competitor, index) => (
+                <Card key={index} className="p-4 border hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-semibold text-sm">{competitor.name}</h4>
+                      <p className="text-xs text-muted-foreground">{competitor.description}</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {competitor.marketShare}
+                    </Badge>
+                  </div>
+                  
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <div className="font-medium text-green-700 mb-1">Strengths</div>
+                      <div className="space-y-1">
+                        {competitor.strengths.map((strength, idx) => (
+                          <div key={idx} className="flex items-center gap-1">
+                            <div className="w-1 h-1 bg-green-500 rounded-full"></div>
+                            <span className="text-muted-foreground">{strength}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="font-medium text-red-700 mb-1">Weaknesses</div>
+                      <div className="space-y-1">
+                        {competitor.weaknesses.map((weakness, idx) => (
+                          <div key={idx} className="flex items-center gap-1">
+                            <div className="w-1 h-1 bg-red-500 rounded-full"></div>
+                            <span className="text-muted-foreground">{weakness}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t">
+                      <span>Founded: {competitor.founded || 'N/A'}</span>
+                      <span>{competitor.funding || 'Private'}</span>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Market Trends */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4 text-foreground flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-green-600" />
+              Market Trends
+            </h3>
+            <div className="grid gap-3">
+              {job.marketTrends.map((trend, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-100">
+                  <TrendingUp className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-foreground">{trend}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Technology Requirements */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4 text-foreground flex items-center gap-2">
+              <Zap className="h-5 w-5 text-blue-600" />
+              Technology Requirements
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {job.technologyRequirements.map((tech, index) => (
+                <Badge 
+                  key={index} 
+                  variant="secondary" 
+                  className="bg-blue-50 text-blue-700 border-blue-200 px-3 py-1"
+                >
+                  {tech}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          {/* Customer Segments */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4 text-foreground flex items-center gap-2">
+              <Users className="h-5 w-5 text-purple-600" />
+              Target Customer Segments
+            </h3>
+            <div className="grid gap-3">
+              {job.customerSegments.map((segment, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                  <Users className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-foreground">{segment}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Go-to-Market Strategy */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4 text-foreground flex items-center gap-2">
+              <Target className="h-5 w-5 text-orange-600" />
+              Go-to-Market Strategy
+            </h3>
+            <div className="grid gap-3">
+              {job.goToMarketStrategy.map((strategy, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg border border-orange-100">
+                  <Target className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-foreground">{strategy}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Regulatory Environment */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4 text-foreground flex items-center gap-2">
+              <Shield className="h-5 w-5 text-gray-600" />
+              Regulatory Environment
+            </h3>
+            <div className="p-4 bg-gray-50 rounded-lg border">
+              <p className="text-foreground">{job.regulatoryEnvironment}</p>
             </div>
           </div>
 

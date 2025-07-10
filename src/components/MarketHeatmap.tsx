@@ -1,7 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import type { HeatmapData } from '@/lib/openai';
 
 interface MarketHeatmapProps {
@@ -15,6 +17,9 @@ interface HeatmapPoint extends HeatmapData {
 }
 
 export const MarketHeatmap = ({ data, title = "Market Opportunity Heatmap" }: MarketHeatmapProps) => {
+  const [selectedPoint, setSelectedPoint] = useState<HeatmapPoint | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   const heatmapPoints = useMemo(() => {
     return data.map((point, index): HeatmapPoint => {
       // Handle different data structures from API
@@ -86,6 +91,19 @@ export const MarketHeatmap = ({ data, title = "Market Opportunity Heatmap" }: Ma
             <div className="flex justify-between">
               <span className="text-muted-foreground">Opportunity Score:</span>
               <span className="font-medium">{data.intensity}/100</span>
+            </div>
+            <div className="mt-2 pt-2 border-t">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="w-full text-xs"
+                onClick={() => {
+                  setSelectedPoint(data);
+                  setIsDialogOpen(true);
+                }}
+              >
+                View Details
+              </Button>
             </div>
           </div>
         </div>
@@ -163,7 +181,15 @@ export const MarketHeatmap = ({ data, title = "Market Opportunity Heatmap" }: Ma
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Scatter name="Opportunities" data={heatmapPoints}>
+                <Scatter 
+                  name="Opportunities" 
+                  data={heatmapPoints}
+                  onClick={(data) => {
+                    setSelectedPoint(data);
+                    setIsDialogOpen(true);
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
                   {heatmapPoints.map((point, index) => (
                     <Cell 
                       key={`cell-${index}`} 
@@ -193,6 +219,115 @@ export const MarketHeatmap = ({ data, title = "Market Opportunity Heatmap" }: Ma
           </div>
         </div>
       </CardContent>
+
+      {/* Detailed Information Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div 
+                className="w-4 h-4 rounded-full" 
+                style={{ backgroundColor: selectedPoint?.color }}
+              ></div>
+              {selectedPoint?.opportunity}
+            </DialogTitle>
+            <DialogDescription>
+              Detailed market opportunity analysis and competitive landscape
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedPoint && (
+            <div className="space-y-6">
+              {/* Market Overview */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm">Market Overview</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Industry:</span>
+                      <Badge variant="outline">{selectedPoint.industry}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Revenue Potential:</span>
+                      <span className="font-medium">${selectedPoint.revenue}M</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Competition Level:</span>
+                      <span className="font-medium">{selectedPoint.competition}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Opportunity Score:</span>
+                      <span className="font-medium">{selectedPoint.intensity}/100</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm">Market Position</h4>
+                  <div className="text-sm text-muted-foreground">
+                    {selectedPoint.intensity >= 80 && (
+                      <p>🔥 High-opportunity market with significant growth potential</p>
+                    )}
+                    {selectedPoint.intensity >= 60 && selectedPoint.intensity < 80 && (
+                      <p>📈 Strong market opportunity with room for innovation</p>
+                    )}
+                    {selectedPoint.intensity >= 40 && selectedPoint.intensity < 60 && (
+                      <p>⚖️ Moderate opportunity with established competition</p>
+                    )}
+                    {selectedPoint.intensity < 40 && (
+                      <p>📊 Emerging market with potential for disruption</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Competitive Analysis */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm">Competitive Landscape</h4>
+                <div className="grid gap-3">
+                  <div className="p-3 bg-blue-50 rounded-lg border">
+                    <h5 className="font-medium text-sm mb-2">Market Leaders</h5>
+                    <p className="text-sm text-muted-foreground">
+                      Established players with {selectedPoint.competition}% market share
+                    </p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg border">
+                    <h5 className="font-medium text-sm mb-2">Opportunity Areas</h5>
+                    <p className="text-sm text-muted-foreground">
+                      {100 - selectedPoint.competition}% of market available for new entrants
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Strategic Recommendations */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm">Strategic Recommendations</h4>
+                <div className="space-y-2">
+                  {selectedPoint.intensity >= 80 && (
+                    <div className="p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
+                      <p className="text-sm font-medium text-green-800">High Priority Opportunity</p>
+                      <p className="text-sm text-green-700">Consider aggressive market entry with differentiated positioning</p>
+                    </div>
+                  )}
+                  {selectedPoint.intensity >= 60 && selectedPoint.intensity < 80 && (
+                    <div className="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                      <p className="text-sm font-medium text-blue-800">Strong Market Opportunity</p>
+                      <p className="text-sm text-blue-700">Focus on unique value proposition and rapid execution</p>
+                    </div>
+                  )}
+                  {selectedPoint.intensity < 60 && (
+                    <div className="p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
+                      <p className="text-sm font-medium text-yellow-800">Moderate Opportunity</p>
+                      <p className="text-sm text-yellow-700">Requires careful positioning and competitive differentiation</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

@@ -5,13 +5,15 @@ import { JobDetails } from '@/components/JobDetails';
 import { Header } from '@/components/Header';
 import { MarketHeatmap } from '@/components/MarketHeatmap';
 import { MarketInsights } from '@/components/MarketInsights';
+import { IndustryDrillDown } from '@/components/IndustryDrillDown';
+import { TechnologyDrillDown } from '@/components/TechnologyDrillDown';
 import { jobsToBeDone, JobToBeDone, industries, tags } from '@/data/jobsToBeDone';
 import { analyzeSearchQuery, type SearchAnalysis, type MarketGap } from '@/lib/openai';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, Lightbulb, Target, DollarSign, BarChart3, Brain } from 'lucide-react';
+import { TrendingUp, Lightbulb, Target, DollarSign, BarChart3, Brain, ExternalLink } from 'lucide-react';
 import heroImage from '@/assets/hero-opportunities.jpg';
 
 const Index = () => {
@@ -23,6 +25,8 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<string>('opportunities');
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedGap, setSelectedGap] = useState<MarketGap | null>(null);
+  const [selectedIndustryDrillDown, setSelectedIndustryDrillDown] = useState<string | null>(null);
+  const [selectedTechnologyDrillDown, setSelectedTechnologyDrillDown] = useState<string | null>(null);
 
   const filteredJobs = useMemo(() => {
     // If we have search results, use them; otherwise use all jobs
@@ -202,6 +206,16 @@ const Index = () => {
     } : null);
   };
 
+  // Handle industry drill-down click
+  const handleIndustryDrillDown = (industry: string) => {
+    setSelectedIndustryDrillDown(industry);
+  };
+
+  // Handle technology drill-down click
+  const handleTechnologyDrillDown = (technology: string) => {
+    setSelectedTechnologyDrillDown(technology);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-hero relative">
       <Header />
@@ -343,10 +357,17 @@ const Index = () => {
                       <Badge
                         key={industry}
                         variant={selectedIndustry === industry ? 'default' : 'outline'}
-                        className="cursor-pointer"
+                        className="cursor-pointer hover:shadow-md transition-all duration-200 group"
                         onClick={() => setSelectedIndustry(industry === selectedIndustry ? '' : industry)}
                       >
-                        {industry}
+                        <span>{industry}</span>
+                        <ExternalLink 
+                          className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleIndustryDrillDown(industry);
+                          }}
+                        />
                       </Badge>
                     ))}
                   </div>
@@ -366,10 +387,17 @@ const Index = () => {
                       <Badge
                         key={tag}
                         variant={selectedTag === tag ? 'default' : 'outline'}
-                        className="cursor-pointer"
+                        className="cursor-pointer hover:shadow-md transition-all duration-200 group"
                         onClick={() => setSelectedTag(tag === selectedTag ? '' : tag)}
                       >
-                        {tag}
+                        <span>{tag}</span>
+                        <ExternalLink 
+                          className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTechnologyDrillDown(tag);
+                          }}
+                        />
                       </Badge>
                     ))}
                   </div>
@@ -489,6 +517,27 @@ const Index = () => {
         <JobDetails
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
+        />
+      )}
+
+      {/* Industry Drill-Down Modal */}
+      {selectedIndustryDrillDown && (
+        <IndustryDrillDown
+          industry={selectedIndustryDrillDown}
+          jobs={jobsToBeDone.filter(job => job.industry === selectedIndustryDrillDown)}
+          onClose={() => setSelectedIndustryDrillDown(null)}
+        />
+      )}
+
+      {/* Technology Drill-Down Modal */}
+      {selectedTechnologyDrillDown && (
+        <TechnologyDrillDown
+          technology={selectedTechnologyDrillDown}
+          jobs={jobsToBeDone.filter(job => 
+            job.technologyRequirements.includes(selectedTechnologyDrillDown) ||
+            job.tags.includes(selectedTechnologyDrillDown)
+          )}
+          onClose={() => setSelectedTechnologyDrillDown(null)}
         />
       )}
     </div>

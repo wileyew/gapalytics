@@ -29,9 +29,13 @@ export const JobCard = ({ job, onClick }: JobCardProps) => {
 
   return (
     <Card 
-      className="p-6 bg-gradient-card border-0 shadow-card hover:shadow-hover transition-all duration-apple cursor-pointer group"
+      className="p-6 bg-gradient-card border-0 shadow-card hover:shadow-hover hover:scale-[1.02] transition-all duration-apple cursor-pointer group relative overflow-hidden"
       onClick={() => onClick?.(job)}
     >
+      {/* Click indicator */}
+      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+      </div>
       <div className="space-y-4">
         {/* Header */}
         <div className="space-y-2">
@@ -85,26 +89,33 @@ export const JobCard = ({ job, onClick }: JobCardProps) => {
           </div>
         </div>
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-2">
-          {job.tags.slice(0, 4).map((tag) => (
-            <Badge 
-              key={tag} 
-              variant="secondary" 
-              className="text-xs bg-apple-light-gray text-apple-gray border-0"
-            >
-              {tag}
-            </Badge>
-          ))}
-          {job.tags.length > 4 && (
-            <Badge 
-              variant="secondary" 
-              className="text-xs bg-apple-light-gray text-apple-gray border-0"
-            >
-              +{job.tags.length - 4} more
-            </Badge>
-          )}
-        </div>
+                  {/* Tags */}
+          <div className="flex flex-wrap gap-2">
+            {job.tags.slice(0, 4).map((tag) => (
+              <Badge 
+                key={tag} 
+                variant="secondary" 
+                className="text-xs bg-apple-light-gray text-apple-gray border-0"
+              >
+                {tag}
+              </Badge>
+            ))}
+            {job.tags.length > 4 && (
+              <Badge 
+                variant="secondary" 
+                className="text-xs bg-apple-light-gray text-apple-gray border-0"
+              >
+                +{job.tags.length - 4} more
+              </Badge>
+            )}
+          </div>
+
+          {/* Click to view details hint */}
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs text-muted-foreground text-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              Click to view detailed analysis →
+            </p>
+          </div>
       </div>
     </Card>
   );

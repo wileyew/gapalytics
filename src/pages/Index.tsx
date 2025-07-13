@@ -14,11 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, Lightbulb, Target, DollarSign, BarChart3, Brain, ExternalLink } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import heroImage from '@/assets/hero-opportunities.jpg';
 
 const Index = () => {
   const [selectedJob, setSelectedJob] = useState<JobToBeDone | null>(null);
   const [searchAnalysis, setSearchAnalysis] = useState<SearchAnalysis | null>(null);
+  const [previousSearchAnalysis, setPreviousSearchAnalysis] = useState<SearchAnalysis | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState<string>('');
   const [selectedTag, setSelectedTag] = useState<string>('');
@@ -27,6 +29,8 @@ const Index = () => {
   const [selectedGap, setSelectedGap] = useState<MarketGap | null>(null);
   const [selectedIndustryDrillDown, setSelectedIndustryDrillDown] = useState<string | null>(null);
   const [selectedTechnologyDrillDown, setSelectedTechnologyDrillDown] = useState<string | null>(null);
+  const [lastSearchQuery, setLastSearchQuery] = useState<string>('');
+  const [showingAllOpportunities, setShowingAllOpportunities] = useState<boolean>(true);
 
   const filteredJobs = useMemo(() => {
     // If we have search results, use them; otherwise use all jobs
@@ -45,9 +49,23 @@ const Index = () => {
     return filtered;
   }, [searchAnalysis, selectedIndustry, selectedTag]);
 
+  // Determine if we're currently showing search results or all opportunities
+  const isShowingSearchResults = useMemo(() => {
+    return hasSearched && searchAnalysis?.relevantOpportunities && searchAnalysis.relevantOpportunities.length > 0;
+  }, [hasSearched, searchAnalysis]);
+
+  const totalOpportunitiesCount = jobsToBeDone.length;
+  const searchResultsCount = searchAnalysis?.relevantOpportunities?.length || 0;
+
   const handleSearch = async (query: string) => {
     setIsSearching(true);
     setHasSearched(true);
+    setLastSearchQuery(query);
+    
+    // Store current search analysis as previous before starting new search
+    if (searchAnalysis) {
+      setPreviousSearchAnalysis(searchAnalysis);
+    }
     
     try {
       const analysis = await analyzeSearchQuery(query, jobsToBeDone);
@@ -55,23 +73,85 @@ const Index = () => {
       console.log('Heatmap data:', analysis.heatmapData); // Debug heatmap
       console.log('Market gaps:', analysis.marketGaps); // Debug gaps
       console.log('Relevant opportunities:', analysis.relevantOpportunities); // Debug opportunities
+      
+      // Check if we have meaningful results
+      const hasResults = analysis.relevantOpportunities && analysis.relevantOpportunities.length > 0;
+      const hasHeatmapData = analysis.heatmapData && analysis.heatmapData.length > 0;
+      const hasMarketGaps = analysis.marketGaps && analysis.marketGaps.length > 0;
+      
+      if (!hasResults && !hasHeatmapData && !hasMarketGaps) {
+        // No results found - show toast and keep previous results
+        toast({
+          variant: "destructive",
+          title: "No results found",
+          description: `No opportunities found for "${query}". Try a different search term or browse all opportunities.`,
+        });
+        
+        // Keep previous results if available, otherwise show all opportunities
+        if (previousSearchAnalysis) {
+          setSearchAnalysis(previousSearchAnalysis);
+          toast({
+            title: "Showing previous results",
+            description: "Displaying your last successful search results.",
+          });
+        } else {
+          setSearchAnalysis({
+            relevantOpportunities: jobsToBeDone,
+            marketGaps: [],
+            searchSuggestion: `Try searching for more specific terms like "AI-powered ${query} for small businesses"`,
+            heatmapData: [],
+            competitiveAnalysis: {
+              oversaturatedAreas: [],
+              underservedAreas: [],
+              emergingTrends: [],
+              riskFactors: []
+            }
+          });
+          setShowingAllOpportunities(true);
+        }
+        setActiveTab('opportunities');
+        return;
+      }
+      
       setSearchAnalysis(analysis);
+      setShowingAllOpportunities(false);
       
       // Reset filters when new search is performed
       setSelectedIndustry('');
       setSelectedTag('');
       setSelectedGap(null);
       
-      // Auto-switch to heatmap tab if we have good data, otherwise go to insights
-      if (analysis.heatmapData && analysis.heatmapData.length > 0) {
+      // Auto-switch to the most relevant tab based on available data
+      if (hasHeatmapData) {
         setActiveTab('heatmap');
-      } else if (analysis.marketGaps && analysis.marketGaps.length > 0) {
+      } else if (hasMarketGaps) {
         setActiveTab('insights');
+      } else if (hasResults) {
+        setActiveTab('opportunities');
       } else {
         setActiveTab('opportunities');
       }
+      
+      // Show success toast with summary
+      const resultCount = analysis.relevantOpportunities?.length || 0;
+      const gapCount = analysis.marketGaps?.length || 0;
+      const heatmapCount = analysis.heatmapData?.length || 0;
+      
+      toast({
+        title: "Search completed successfully",
+        description: `Found ${resultCount} opportunities, ${gapCount} market gaps, and ${heatmapCount} heatmap data points.`,
+      });
+      
     } catch (error) {
       console.error('Search failed:', error);
+      
+      // Show error toast
+      toast({
+        variant: "destructive",
+        title: "Search failed",
+        description: "There was an issue executing the search. Please try again or check your connection.",
+      });
+      
       // Fallback to simple search
       const keywords = query.toLowerCase().split(' ');
       const results = jobsToBeDone.filter(job => 
@@ -84,18 +164,60 @@ const Index = () => {
         )
       );
       
-      setSearchAnalysis({
-        relevantOpportunities: results,
-        marketGaps: [],
-        searchSuggestion: null,
-        heatmapData: [],
-        competitiveAnalysis: {
-          oversaturatedAreas: [],
-          underservedAreas: [],
-          emergingTrends: [],
-          riskFactors: []
+      if (results.length > 0) {
+        // Simple search found results
+        const fallbackAnalysis = {
+          relevantOpportunities: results,
+          marketGaps: [],
+          searchSuggestion: `Try searching for more specific terms like "AI-powered ${query} for small businesses"`,
+          heatmapData: [],
+          competitiveAnalysis: {
+            oversaturatedAreas: [],
+            underservedAreas: [],
+            emergingTrends: [],
+            riskFactors: []
+          }
+        };
+        
+        setSearchAnalysis(fallbackAnalysis);
+        setShowingAllOpportunities(false);
+        setActiveTab('opportunities');
+        
+        toast({
+          title: "Using simplified search",
+          description: `Found ${results.length} opportunities using basic keyword matching.`,
+        });
+      } else {
+        // No results from simple search either - restore previous results
+        if (previousSearchAnalysis) {
+          setSearchAnalysis(previousSearchAnalysis);
+          toast({
+            title: "Showing previous results",
+            description: "No results found. Displaying your last successful search results.",
+          });
+        } else {
+          // No previous results - show all opportunities
+          setSearchAnalysis({
+            relevantOpportunities: jobsToBeDone,
+            marketGaps: [],
+            searchSuggestion: `Try searching for more specific terms like "AI-powered ${query} for small businesses"`,
+            heatmapData: [],
+            competitiveAnalysis: {
+              oversaturatedAreas: [],
+              underservedAreas: [],
+              emergingTrends: [],
+              riskFactors: []
+            }
+          });
+          setShowingAllOpportunities(true);
+          
+          toast({
+            title: "Showing all opportunities",
+            description: "No results found. Browse all available opportunities instead.",
+          });
         }
-      });
+        setActiveTab('opportunities');
+      }
     } finally {
       setIsSearching(false);
     }
@@ -167,6 +289,7 @@ const Index = () => {
       ...prev,
       relevantOpportunities: relatedJobs
     } : null);
+    setShowingAllOpportunities(false);
   };
 
   // Handle competitive area click
@@ -204,6 +327,7 @@ const Index = () => {
       ...prev,
       relevantOpportunities: filteredJobs
     } : null);
+    setShowingAllOpportunities(false);
   };
 
   // Handle industry drill-down click
@@ -214,6 +338,47 @@ const Index = () => {
   // Handle technology drill-down click
   const handleTechnologyDrillDown = (technology: string) => {
     setSelectedTechnologyDrillDown(technology);
+  };
+
+  const clearSearchResults = () => {
+    setSearchAnalysis(null);
+    setPreviousSearchAnalysis(null);
+    setHasSearched(false);
+    setLastSearchQuery('');
+    setSelectedIndustry('');
+    setSelectedTag('');
+    setSelectedGap(null);
+    setActiveTab('opportunities');
+    setShowingAllOpportunities(true);
+  };
+
+  const showAllOpportunities = () => {
+    setSearchAnalysis({
+      relevantOpportunities: jobsToBeDone,
+      marketGaps: [],
+      searchSuggestion: null,
+      heatmapData: [],
+      competitiveAnalysis: {
+        oversaturatedAreas: [],
+        underservedAreas: [],
+        emergingTrends: [],
+        riskFactors: []
+      }
+    });
+    setHasSearched(false);
+    setLastSearchQuery('');
+    setSelectedIndustry('');
+    setSelectedTag('');
+    setSelectedGap(null);
+    setShowingAllOpportunities(true);
+  };
+
+  const showSearchResults = () => {
+    if (previousSearchAnalysis) {
+      setSearchAnalysis(previousSearchAnalysis);
+      setHasSearched(true);
+      setShowingAllOpportunities(false);
+    }
   };
 
   return (
@@ -300,11 +465,15 @@ const Index = () => {
               >
                 <Target className="h-4 w-4" />
                 Opportunities
-                {searchAnalysis?.relevantOpportunities && searchAnalysis.relevantOpportunities.length > 0 && (
+                {isShowingSearchResults ? (
+                  <Badge variant="secondary" className="ml-1 text-xs bg-blue-100 text-blue-700">
+                    {searchResultsCount} results
+                  </Badge>
+                ) : searchAnalysis?.relevantOpportunities && searchAnalysis.relevantOpportunities.length > 0 ? (
                   <Badge variant="secondary" className="ml-1 text-xs bg-green-100 text-green-700">
                     {searchAnalysis.relevantOpportunities.length}
                   </Badge>
-                )}
+                ) : null}
               </TabsTrigger>
               <TabsTrigger 
                 value="heatmap" 
@@ -341,6 +510,114 @@ const Index = () => {
             </TabsList>
 
             <TabsContent value="opportunities" className="space-y-6">
+              {/* Search Status and Navigation */}
+              {hasSearched && lastSearchQuery ? (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-blue-900">Search Results</h3>
+                      <p className="text-sm text-blue-700 mt-1">
+                        Query: "{lastSearchQuery}" • Found {searchResultsCount} opportunities
+                        {searchAnalysis?.marketGaps && searchAnalysis.marketGaps.length > 0 && (
+                          <span> • {searchAnalysis.marketGaps.length} market gaps identified</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Showing {filteredJobs.length} opportunities after filters
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={showAllOpportunities}
+                        className="text-green-600 border-green-300 hover:bg-green-100"
+                      >
+                        View All ({totalOpportunitiesCount})
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSearch(lastSearchQuery)}
+                        disabled={isSearching}
+                        className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                      >
+                        {isSearching ? (
+                          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          'Retry Search'
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearSearchResults}
+                        className="text-gray-600 border-gray-300 hover:bg-gray-100"
+                      >
+                        Clear Search
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : isShowingSearchResults && previousSearchAnalysis ? (
+                <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-green-900">Previous Search Results</h3>
+                      <p className="text-sm text-green-700 mt-1">
+                        Showing {searchResultsCount} opportunities from previous search
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        Showing {filteredJobs.length} opportunities after filters
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={showAllOpportunities}
+                        className="text-green-600 border-green-300 hover:bg-green-100"
+                      >
+                        View All ({totalOpportunitiesCount})
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearSearchResults}
+                        className="text-gray-600 border-gray-300 hover:bg-gray-100"
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">All Opportunities</h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Browse all {totalOpportunitiesCount} available opportunities
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Showing {filteredJobs.length} opportunities after filters
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={showSearchResults}
+                        disabled={!previousSearchAnalysis}
+                        className="text-blue-600 border-blue-300 hover:bg-blue-100 disabled:opacity-50"
+                      >
+                        {previousSearchAnalysis ? 'Show Previous Search' : 'No Previous Search'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Filters */}
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-4 justify-center">
@@ -417,7 +694,11 @@ const Index = () => {
                       size="sm"
                       onClick={() => {
                         setSelectedGap(null);
-                        setSearchAnalysis(null);
+                        if (previousSearchAnalysis) {
+                          setSearchAnalysis(previousSearchAnalysis);
+                        } else {
+                          clearSearchResults();
+                        }
                       }}
                       className="text-blue-600 border-blue-300 hover:bg-blue-100"
                     >
@@ -428,9 +709,51 @@ const Index = () => {
               )}
 
               {/* Jobs Grid */}
-              {filteredJobs.length === 0 && hasSearched ? (
+              {filteredJobs.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-xl text-muted-foreground">No opportunities found matching your criteria.</p>
+                  <div className="mb-4">
+                    <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">
+                      {hasSearched ? 'No opportunities found' : 'No opportunities match filters'}
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      {hasSearched 
+                        ? 'No opportunities found matching your search criteria.'
+                        : 'Try adjusting your industry or technology filters.'
+                      }
+                    </p>
+                    <div className="flex gap-2 justify-center">
+                      <Button
+                        variant="outline"
+                        onClick={showAllOpportunities}
+                      >
+                        View All Opportunities
+                      </Button>
+                      {hasSearched && lastSearchQuery && (
+                        <Button
+                          onClick={() => handleSearch(lastSearchQuery)}
+                          disabled={isSearching}
+                        >
+                          {isSearching ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            'Try Different Search'
+                          )}
+                        </Button>
+                      )}
+                      {selectedIndustry || selectedTag ? (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedIndustry('');
+                            setSelectedTag('');
+                          }}
+                        >
+                          Clear Filters
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -458,6 +781,26 @@ const Index = () => {
                   <p className="text-muted-foreground mb-4">
                     The search didn't generate heatmap data. Try a more specific search query.
                   </p>
+                  {lastSearchQuery && (
+                    <div className="flex gap-2 justify-center">
+                      <Button
+                        variant="outline"
+                        onClick={() => handleSearch(lastSearchQuery)}
+                        disabled={isSearching}
+                      >
+                        {isSearching ? (
+                          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          'Retry Search'
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => setActiveTab('opportunities')}
+                      >
+                        View Opportunities
+                      </Button>
+                    </div>
+                  )}
                 </Card>
               ) : (
                 <Card className="p-12 text-center">
@@ -487,6 +830,26 @@ const Index = () => {
                   <p className="text-muted-foreground mb-4">
                     The search didn't generate insights. Try a more specific search query.
                   </p>
+                  {lastSearchQuery && (
+                    <div className="flex gap-2 justify-center">
+                      <Button
+                        variant="outline"
+                        onClick={() => handleSearch(lastSearchQuery)}
+                        disabled={isSearching}
+                      >
+                        {isSearching ? (
+                          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          'Retry Search'
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => setActiveTab('opportunities')}
+                      >
+                        View Opportunities
+                      </Button>
+                    </div>
+                  )}
                 </Card>
               ) : (
                 <div className="space-y-6">

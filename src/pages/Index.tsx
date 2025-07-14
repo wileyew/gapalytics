@@ -618,38 +618,29 @@ const Index = () => {
                 </div>
               )}
 
+              {/* Industry Bubbles Filter */}
+              <div className="flex flex-wrap gap-2 justify-center mb-4">
+                <Badge
+                  variant={selectedIndustry === '' ? 'default' : 'outline'}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedIndustry('')}
+                >
+                  All
+                </Badge>
+                {industries.map(industry => (
+                  <Badge
+                    key={industry}
+                    variant={selectedIndustry === industry ? 'default' : 'outline'}
+                    className="cursor-pointer hover:shadow-md transition-all duration-200"
+                    onClick={() => setSelectedIndustry(industry === selectedIndustry ? '' : industry)}
+                  >
+                    {industry}
+                  </Badge>
+                ))}
+              </div>
+
               {/* Filters */}
               <div className="space-y-4">
-                <div className="flex flex-wrap gap-4 justify-center">
-                  <div className="flex flex-wrap gap-2">
-                    <span className="text-sm font-medium text-muted-foreground self-center">Industries:</span>
-                    <Badge
-                      variant={selectedIndustry === '' ? 'default' : 'outline'}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedIndustry('')}
-                    >
-                      All
-                    </Badge>
-                    {industries.map(industry => (
-                      <Badge
-                        key={industry}
-                        variant={selectedIndustry === industry ? 'default' : 'outline'}
-                        className="cursor-pointer hover:shadow-md transition-all duration-200 group"
-                        onClick={() => setSelectedIndustry(industry === selectedIndustry ? '' : industry)}
-                      >
-                        <span>{industry}</span>
-                        <ExternalLink 
-                          className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleIndustryDrillDown(industry);
-                          }}
-                        />
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                
                 <div className="flex flex-wrap gap-4 justify-center">
                   <div className="flex flex-wrap gap-2">
                     <span className="text-sm font-medium text-muted-foreground self-center">Technologies:</span>

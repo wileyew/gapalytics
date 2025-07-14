@@ -31,6 +31,7 @@ const Index = () => {
   const [selectedTechnologyDrillDown, setSelectedTechnologyDrillDown] = useState<string | null>(null);
   const [lastSearchQuery, setLastSearchQuery] = useState<string>('');
   const [showingAllOpportunities, setShowingAllOpportunities] = useState<boolean>(true);
+  const [selectedHighLevelIndustry, setSelectedHighLevelIndustry] = useState<string>('');
 
   const filteredJobs = useMemo(() => {
     // If we have search results, use them; otherwise use all jobs
@@ -38,6 +39,9 @@ const Index = () => {
       searchAnalysis.relevantOpportunities : jobsToBeDone;
     
     // Apply additional filters only if we're not in a filtered state from API
+    if (selectedHighLevelIndustry) {
+      filtered = filtered.filter(job => job.industry === selectedHighLevelIndustry);
+    }
     if (selectedIndustry && (!searchAnalysis?.relevantOpportunities || searchAnalysis.relevantOpportunities.length === 0)) {
       filtered = filtered.filter(job => job.industry === selectedIndustry);
     }
@@ -47,7 +51,16 @@ const Index = () => {
     }
     
     return filtered;
-  }, [searchAnalysis, selectedIndustry, selectedTag]);
+  }, [searchAnalysis, selectedIndustry, selectedTag, selectedHighLevelIndustry]);
+
+  // For Technologies section, only show tags present in filteredJobs
+  const filteredTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    filteredJobs.forEach(job => {
+      job.tags.forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet);
+  }, [filteredJobs]);
 
   // Determine if we're currently showing search results or all opportunities
   const isShowingSearchResults = useMemo(() => {
@@ -381,6 +394,16 @@ const Index = () => {
     }
   };
 
+  // Define high-level filters
+  const highLevelIndustries = [
+    'Consumer Technology',
+    'Construction Technology',
+    'Sharing Economy',
+    'Business Productivity',
+    'Education Technology',
+    'RegTech',
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-hero relative">
       <Header />
@@ -641,6 +664,31 @@ const Index = () => {
 
               {/* Filters */}
               <div className="space-y-4">
+                <div className="flex flex-wrap gap-4 justify-center mb-2">
+                  <label className="font-medium self-center">High-Level Industry:</label>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="highLevelIndustry"
+                      value=""
+                      checked={selectedHighLevelIndustry === ''}
+                      onChange={() => setSelectedHighLevelIndustry('')}
+                    />
+                    All
+                  </label>
+                  {highLevelIndustries.map(industry => (
+                    <label key={industry} className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="highLevelIndustry"
+                        value={industry}
+                        checked={selectedHighLevelIndustry === industry}
+                        onChange={() => setSelectedHighLevelIndustry(industry)}
+                      />
+                      {industry}
+                    </label>
+                  ))}
+                </div>
                 <div className="flex flex-wrap gap-4 justify-center">
                   <div className="flex flex-wrap gap-2">
                     <span className="text-sm font-medium text-muted-foreground self-center">Technologies:</span>
@@ -651,7 +699,7 @@ const Index = () => {
                     >
                       All
                     </Badge>
-                    {tags.map(tag => (
+                    {filteredTags.map(tag => (
                       <Badge
                         key={tag}
                         variant={selectedTag === tag ? 'default' : 'outline'}

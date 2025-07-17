@@ -33,10 +33,12 @@ const Index = () => {
   const [showingAllOpportunities, setShowingAllOpportunities] = useState<boolean>(true);
 
   const filteredJobs = useMemo(() => {
-    // Always use searchAnalysis.relevantOpportunities if present
-    let baseJobs = searchAnalysis?.relevantOpportunities && searchAnalysis.relevantOpportunities.length > 0
-      ? searchAnalysis.relevantOpportunities
-      : jobsToBeDone;
+    // If showing all, use all jobs; otherwise, use search results
+    let baseJobs = showingAllOpportunities
+      ? jobsToBeDone
+      : (searchAnalysis?.relevantOpportunities && searchAnalysis.relevantOpportunities.length > 0
+          ? searchAnalysis.relevantOpportunities
+          : []);
 
     // Apply filters on top of the current baseJobs
     if (selectedIndustry) {
@@ -46,7 +48,7 @@ const Index = () => {
       baseJobs = baseJobs.filter(job => job.tags.includes(selectedTag));
     }
     return baseJobs;
-  }, [searchAnalysis, selectedIndustry, selectedTag]);
+  }, [showingAllOpportunities, searchAnalysis, selectedIndustry, selectedTag, jobsToBeDone]);
 
   // For Technologies section, only show tags present in filteredJobs
   const filteredTags = useMemo(() => {

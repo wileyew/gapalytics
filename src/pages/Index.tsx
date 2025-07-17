@@ -816,15 +816,35 @@ const Index = () => {
             </TabsContent>
 
             <TabsContent value="insights" className="space-y-6">
-              {searchAnalysis ? (
-                <MarketInsights
-                  marketGaps={searchAnalysis.marketGaps}
-                  competitiveAnalysis={searchAnalysis.competitiveAnalysis}
-                  searchSuggestion={searchAnalysis.searchSuggestion}
-                  allJobs={jobsToBeDone}
-                  onGapClick={handleGapClick}
-                  onCompetitiveAreaClick={handleCompetitiveAreaClick}
-                />
+              {searchAnalysis && hasSearched ? (
+                <>
+                  <MarketInsights
+                    marketGaps={searchAnalysis.marketGaps}
+                    competitiveAnalysis={searchAnalysis.competitiveAnalysis}
+                    searchSuggestion={null} // Hide AI suggestions on search
+                    allJobs={jobsToBeDone}
+                    onGapClick={handleGapClick}
+                    onCompetitiveAreaClick={handleCompetitiveAreaClick}
+                  />
+                  {/* Show relevant opportunities for the search on AI Insights tab */}
+                  {searchAnalysis.relevantOpportunities && searchAnalysis.relevantOpportunities.length > 0 && (
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold flex items-center gap-2">
+                        <Target className="h-5 w-5 text-blue-600" />
+                        Opportunities Relevant to Your Search
+                      </h3>
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {searchAnalysis.relevantOpportunities.map((job) => (
+                          <JobCard
+                            key={job.id}
+                            job={job}
+                            onClick={setSelectedJob}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : hasSearched ? (
                 <Card className="p-12 text-center">
                   <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -862,8 +882,7 @@ const Index = () => {
                       Search for market opportunities to get AI-powered insights, gap analysis, and competitive intelligence.
                     </p>
                   </Card>
-                  
-                  {/* Show competitive analysis based on opportunities data */}
+                  {/* Show competitive analysis based on opportunities data only if not searching */}
                   <MarketInsights
                     marketGaps={[]}
                     competitiveAnalysis={generateCompetitiveAnalysis()}

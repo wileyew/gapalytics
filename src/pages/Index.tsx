@@ -33,20 +33,19 @@ const Index = () => {
   const [showingAllOpportunities, setShowingAllOpportunities] = useState<boolean>(true);
 
   const filteredJobs = useMemo(() => {
-    // If we have search results, use them; otherwise use all jobs
-    let filtered = searchAnalysis?.relevantOpportunities && searchAnalysis.relevantOpportunities.length > 0 ? 
-      searchAnalysis.relevantOpportunities : jobsToBeDone;
-    
-    // Apply additional filters only if we're not in a filtered state from API
-    if (selectedIndustry && (!searchAnalysis?.relevantOpportunities || searchAnalysis.relevantOpportunities.length === 0)) {
-      filtered = filtered.filter(job => job.industry === selectedIndustry);
+    // Always use searchAnalysis.relevantOpportunities if present
+    let baseJobs = searchAnalysis?.relevantOpportunities && searchAnalysis.relevantOpportunities.length > 0
+      ? searchAnalysis.relevantOpportunities
+      : jobsToBeDone;
+
+    // Apply filters on top of the current baseJobs
+    if (selectedIndustry) {
+      baseJobs = baseJobs.filter(job => job.industry === selectedIndustry);
     }
-    
-    if (selectedTag && (!searchAnalysis?.relevantOpportunities || searchAnalysis.relevantOpportunities.length === 0)) {
-      filtered = filtered.filter(job => job.tags.includes(selectedTag));
+    if (selectedTag) {
+      baseJobs = baseJobs.filter(job => job.tags.includes(selectedTag));
     }
-    
-    return filtered;
+    return baseJobs;
   }, [searchAnalysis, selectedIndustry, selectedTag]);
 
   // For Technologies section, only show tags present in filteredJobs
@@ -122,7 +121,10 @@ const Index = () => {
         return;
       }
       
-      setSearchAnalysis(analysis);
+      setSearchAnalysis({
+        ...analysis,
+        heatmapData: [...(analysis.heatmapData || [])],
+      });
       setShowingAllOpportunities(false);
       
       // Reset filters when new search is performed

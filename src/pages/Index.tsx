@@ -336,6 +336,7 @@ const Index: FC = () => {
                 allJobs={jobsToBeDone}
                 onGapClick={() => {}}
                 onCompetitiveAreaClick={() => {}}
+                {...(showingAllOpportunities && searchAnalysis?.searchSuggestion ? { searchSuggestion: searchAnalysis.searchSuggestion } : {})}
               />
             </TabsContent>
           </Tabs>

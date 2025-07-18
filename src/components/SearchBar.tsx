@@ -19,6 +19,7 @@ export const SearchBar = ({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -84,8 +85,8 @@ export const SearchBar = ({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => query.length >= 3 && setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            onFocus={() => { setIsFocused(true); if (query.length >= 3) setShowSuggestions(true); }}
+            onBlur={() => { setIsFocused(false); setTimeout(() => setShowSuggestions(false), 200); }}
             placeholder={placeholder}
             className="pl-12 pr-24 h-14 text-lg bg-white/80 backdrop-blur-sm border-0 shadow-apple rounded-2xl focus:shadow-hover transition-all duration-apple"
           />
@@ -104,7 +105,7 @@ export const SearchBar = ({
       </form>
 
       {/* AI Suggestions Dropdown */}
-      {showSuggestions && (suggestions.length > 0 || isGeneratingSuggestions) && (
+      {isFocused && showSuggestions && (suggestions.length > 0 || isGeneratingSuggestions) && (
         <div className="absolute top-full mt-2 w-full bg-white/95 backdrop-blur-sm rounded-xl shadow-apple border border-gray-200 z-50">
           <div className="p-4">
             <div className="flex items-center gap-2 mb-3">

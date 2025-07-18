@@ -223,10 +223,12 @@ const Index: FC = () => {
             className="max-w-7xl mx-auto"
           >
             <TabsList className="grid grid-cols-3 mb-8">
-              <TabsTrigger value="opportunities">
-                Opportunities
-                {isShowingSearchResults && <Badge>{resultsCount}</Badge>}
-              </TabsTrigger>
+              {showingAllOpportunities && (
+                <TabsTrigger value="opportunities">
+                  Opportunities
+                  {isShowingSearchResults && <Badge>{resultsCount}</Badge>}
+                </TabsTrigger>
+              )}
               <TabsTrigger value="heatmap">
                 Market Heatmap
                 {searchAnalysis?.heatmapData?.length ? (
@@ -242,41 +244,43 @@ const Index: FC = () => {
             </TabsList>
 
             {/* Opportunities Tab */}
-            <TabsContent value="opportunities">
-              {industryInsights.length > 0 && (
-                <section className="mb-8">
-                  <h2 className="text-2xl font-semibold mb-4">
-                    Industry Overviews
-                  </h2>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {industryInsights.map(insight => (
-                      <Card
-                        key={insight.industry}
-                        className="p-6 bg-white/90 shadow-card"
-                      >
-                        <h3 className="text-xl font-bold mb-2">
-                          {insight.industry}
-                        </h3>
-                        <p className="text-sm mb-1">
-                          Leading: {insight.leadingCompanies.join(', ')}
-                        </p>
-                        <p className="text-sm mb-2">
-                          Unsolved: {insight.unsolvedJobs.length}
-                        </p>
-                        <p className="font-medium">
-                          Revenue: ${insight.revenuePotential.toFixed(0)}M
-                        </p>
-                      </Card>
-                    ))}
-                  </div>
-                </section>
-              )}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredJobs.map(job => (
-                  <JobCard key={job.id} job={job} onClick={setSelectedJob} />
-                ))}
-              </div>
-            </TabsContent>
+            {showingAllOpportunities && (
+              <TabsContent value="opportunities">
+                {industryInsights.length > 0 && (
+                  <section className="mb-8">
+                    <h2 className="text-2xl font-semibold mb-4">
+                      Industry Overviews
+                    </h2>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {industryInsights.map(insight => (
+                        <Card
+                          key={insight.industry}
+                          className="p-6 bg-white/90 shadow-card"
+                        >
+                          <h3 className="text-xl font-bold mb-2">
+                            {insight.industry}
+                          </h3>
+                          <p className="text-sm mb-1">
+                            Leading: {insight.leadingCompanies.join(', ')}
+                          </p>
+                          <p className="text-sm mb-2">
+                            Unsolved: {insight.unsolvedJobs.length}
+                          </p>
+                          <p className="font-medium">
+                            Revenue: ${insight.revenuePotential.toFixed(0)}M
+                          </p>
+                        </Card>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredJobs.map(job => (
+                    <JobCard key={job.id} job={job} onClick={setSelectedJob} />
+                  ))}
+                </div>
+              </TabsContent>
+            )}
 
             {/* Heatmap Tab */}
             <TabsContent value="heatmap">

@@ -64,8 +64,11 @@ export const SearchBar = ({
   const handleSuggestionClick = (suggestion: string) => {
     const cleanSuggestion = suggestion.replace(/^[0-9]+\.\s*/, '').replace(/^[-*]\s*/, '');
     setQuery(cleanSuggestion);
-    onSearch(cleanSuggestion);
     setShowSuggestions(false);
+    // Ensure the input is updated before executing search
+    setTimeout(() => {
+      onSearch(cleanSuggestion);
+    }, 0);
   };
 
   const exampleQueries = [

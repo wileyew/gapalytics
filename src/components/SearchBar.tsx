@@ -108,7 +108,10 @@ export const SearchBar = ({
 
       {/* AI Suggestions Dropdown */}
       {isFocused && showSuggestions && (suggestions.length > 0 || isGeneratingSuggestions) && (
-        <div className="absolute top-full mt-2 w-full bg-white/95 backdrop-blur-sm rounded-xl shadow-apple border border-gray-200 z-50">
+        <div
+          className="absolute top-full mt-2 w-full bg-white/95 backdrop-blur-sm rounded-xl shadow-apple border border-gray-200 z-50"
+          onMouseDown={e => e.preventDefault()}
+        >
           <div className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-blue-500" />

@@ -289,40 +289,31 @@ const Index: FC = () => {
                 title="Market Heatmap"
               />
 
-              {industryInsights.length > 0 && (
+              {/* Jobs to be done for each heatmap item */}
+              {searchAnalysis?.heatmapData?.length > 0 && (
                 <section className="mt-8">
-                  <h2 className="text-2xl font-semibold mb-4">
-                    Industry Overviews
-                  </h2>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {industryInsights.map(insight => (
-                      <Card
-                        key={insight.industry}
-                        className="p-6 bg-white/90 shadow-card"
-                      >
-                        <h3 className="text-xl font-bold mb-2">
-                          {insight.industry}
-                        </h3>
-                        <p className="text-sm mb-1">
-                          Leading: {insight.leadingCompanies.join(', ')}
-                        </p>
-                        <p className="text-sm mb-1">
-                          Unsolved Jobs: {insight.unsolvedJobs.length}
-                        </p>
-                        <ul className="list-disc list-inside mb-2">
-                          {insight.unsolvedJobs
-                            .slice(0, 3)
-                            .map(job => (
-                              <li key={job.id} className="text-sm">
-                                {job.title}
-                              </li>
-                            ))}
-                        </ul>
-                        <p className="font-medium">
-                          Revenue: ${insight.revenuePotential.toFixed(0)}M
-                        </p>
-                      </Card>
-                    ))}
+                  <h2 className="text-2xl font-semibold mb-4">Jobs to Be Done by Heatmap Area</h2>
+                  <div className="space-y-8">
+                    {searchAnalysis.heatmapData.map((item, idx) => {
+                      const jobs = jobsToBeDone.filter(job =>
+                        job.industry === item.industry &&
+                        (job.title === item.opportunity || job.title.toLowerCase().includes(item.opportunity.toLowerCase()))
+                      );
+                      return (
+                        <Card key={item.industry + item.opportunity + idx} className="p-6 bg-white/90 shadow-card">
+                          <h3 className="text-lg font-bold mb-2">{item.industry} — {item.opportunity}</h3>
+                          {jobs.length > 0 ? (
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {jobs.map(job => (
+                                <JobCard key={job.id} job={job} onClick={setSelectedJob} />
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground text-sm">No jobs found for this area.</p>
+                          )}
+                        </Card>
+                      );
+                    })}
                   </div>
                 </section>
               )}

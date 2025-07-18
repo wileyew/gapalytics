@@ -1,3 +1,4 @@
+
 import React, { FC, useState, useMemo } from 'react';
 import { SearchBar } from '@/components/SearchBar';
 import { JobCard } from '@/components/JobCard';
@@ -8,7 +9,7 @@ import { MarketInsights } from '@/components/MarketInsights';
 import { IndustryDrillDown } from '@/components/IndustryDrillDown';
 import { TechnologyDrillDown } from '@/components/TechnologyDrillDown';
 import { jobsToBeDone, JobToBeDone, industries, tags } from '@/data/jobsToBeDone';
-import { analyzeSearchQuery, type SearchAnalysis, type MarketGap } from '@/lib/openai';
+import { analyzeSearchQuery, type SearchAnalysis, type MarketGap, type HeatmapData } from '@/lib/openai';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -34,37 +35,47 @@ const Index: FC = () => {
 
   // Compute industry insights
   const industryInsights = useMemo(() => {
-    if (!searchAnalysis?.heatmapData) return [];
-    return searchAnalysis.heatmapData.map(item => {
-      const unsolvedJobs = jobsToBeDone.filter(job =>
-        job.industry === item.industry &&
-        !searchAnalysis.relevantOpportunities?.some(ro => ro.id === job.id)
+    if (!searchAnalysis?.heatmapData?.length) return [];
+    // Dedupe by industry
+    const map = new Map<string, HeatmapData>();
+    searchAnalysis.heatmapData.forEach(item => {
+      if (!map.has(item.industry)) {
+        map.set(item.industry, item);
+      }
+    });
+    return Array.from(map.values()).map(item => {
+      const unsolvedJobs = jobsToBeDone.filter(
+        job =>
+          job.industry === item.industry &&
+          !searchAnalysis.relevantOpportunities?.some(ro => ro.id === job.id)
       );
-      const revenuePotential = unsolvedJobs.reduce((sum, job) =>
-        sum + parseFloat(job.profitPotential.revenue.replace(/[^0-9.]/g, ''))
-      , 0);
+      const revenuePotential = unsolvedJobs.reduce(
+        (sum, job) => sum + parseFloat(job.profitPotential.revenue.replace(/[^0-9.]/g, '')),
+        0
+      );
       return {
         industry: item.industry,
-        leadingCompanies: [], // Remove reference to non-existent property
+        leadingCompanies: [], // Property doesn't exist on HeatmapData
         unsolvedJobs,
-        revenuePotential
+        revenuePotential,
       };
     });
   }, [searchAnalysis]);
 
-  // Filter jobs by search and filters
+  // Filter jobs by search and industry/tag filters
   const filteredJobs = useMemo<JobToBeDone[]>(() => {
     const base = showingAllOpportunities
       ? jobsToBeDone
       : searchAnalysis?.relevantOpportunities || [];
-    return base.filter(job =>
-      (!selectedIndustry || job.industry === selectedIndustry) &&
-      (!selectedTag || job.tags.includes(selectedTag))
+    return base.filter(
+      job =>
+        (!selectedIndustry || job.industry === selectedIndustry) &&
+        (!selectedTag || job.tags.includes(selectedTag))
     );
   }, [showingAllOpportunities, searchAnalysis, selectedIndustry, selectedTag]);
 
-  const isShowingSearchResults = useMemo<boolean>(() =>
-    hasSearched && !!searchAnalysis?.relevantOpportunities?.length,
+  const isShowingSearchResults = useMemo<boolean>(
+    () => hasSearched && !!searchAnalysis?.relevantOpportunities?.length,
     [hasSearched, searchAnalysis]
   );
 
@@ -73,6 +84,8 @@ const Index: FC = () => {
 
   // Search handler
   const handleSearch = async (query: string) => {
+    // Clear previous industry cards immediately
+    setSearchAnalysis(prev => (prev ? { ...prev, heatmapData: [] } : null));
     setIsSearching(true);
     setHasSearched(true);
     setLastSearchQuery(query);
@@ -81,16 +94,27 @@ const Index: FC = () => {
       const analysis = await analyzeSearchQuery(query, jobsToBeDone);
       const hasHeat = !!analysis.heatmapData?.length;
       const hasGaps = !!analysis.marketGaps?.length;
+
       if (!analysis.relevantOpportunities?.length && !hasHeat && !hasGaps) {
-        toast({ variant: 'destructive', title: 'No results found', description: `No opportunities found for "${query}".` });
-        if (previousSearchAnalysis) setSearchAnalysis(previousSearchAnalysis);
-        else {
+        toast({
+          variant: 'destructive',
+          title: 'No results found',
+          description: `No opportunities found for "${query}".`,
+        });
+        if (previousSearchAnalysis) {
+          setSearchAnalysis(previousSearchAnalysis);
+        } else {
           setSearchAnalysis({
             relevantOpportunities: jobsToBeDone,
             heatmapData: [],
             marketGaps: [],
-            competitiveAnalysis: { oversaturatedAreas: [], underservedAreas: [], emergingTrends: [], riskFactors: [] },
-            searchSuggestion: `Try "AI-powered ${query}"`
+            competitiveAnalysis: {
+              oversaturatedAreas: [],
+              underservedAreas: [],
+              emergingTrends: [],
+              riskFactors: [],
+            },
+            searchSuggestion: `Try "AI-powered ${query}"`,
           });
           setShowingAllOpportunities(true);
         }
@@ -98,106 +122,206 @@ const Index: FC = () => {
       } else {
         setSearchAnalysis({ ...analysis, heatmapData: analysis.heatmapData || [] });
         setShowingAllOpportunities(false);
-        setSelectedIndustry(''); setSelectedTag(''); setSelectedGap(null);
-        if (hasHeat) setActiveTab('heatmap');
-        else if (hasGaps) setActiveTab('insights');
-        else setActiveTab('opportunities');
-        toast({ title: 'Search complete', description: `${analysis.relevantOpportunities?.length || 0} opportunities found.` });
+        setSelectedIndustry('');
+        setSelectedTag('');
+        setSelectedGap(null);
+        setActiveTab(hasHeat ? 'heatmap' : hasGaps ? 'insights' : 'opportunities');
+        toast({
+          title: 'Search complete',
+          description: `${analysis.relevantOpportunities?.length || 0} opportunities found.`,
+        });
       }
     } catch {
-      toast({ variant: 'destructive', title: 'Search failed', description: 'Try again.' });
+      toast({ variant: 'destructive', title: 'Search failed', description: 'Please try again.' });
     } finally {
       setIsSearching(false);
     }
   };
 
-  // Handle market gap click
-  const handleGapClick = (gap: MarketGap) => {
-    setSelectedGap(gap);
-    setActiveTab('opportunities');
-    // Filter jobs to show related opportunities
-    const gapKeywords = gap.title.toLowerCase().split(' ');
-    const relatedJobs = jobsToBeDone.filter(job => {
-      const jobText = `${job.title} ${job.description} ${job.industry} ${job.tags.join(' ')}`.toLowerCase();
-      return gapKeywords.some(keyword => jobText.includes(keyword));
-    });
-    setSearchAnalysis(prev => prev ? {
-      ...prev,
-      relevantOpportunities: relatedJobs
-    } : null);
-    setShowingAllOpportunities(false);
-  };
-
-  // Render
   return (
     <div className="min-h-screen bg-gradient-hero relative">
       <Header />
-      <div className="absolute inset-0 bg-cover bg-center opacity-5" style={{ backgroundImage: `url(${heroImage})` }} />
-      <main className="relative px-4 pt-16 pb-24">
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-5"
+        style={{ backgroundImage: `url(${heroImage})` }}
+      />
+      <main className="relative px-4 pt-16 pb-24 max-w-7xl mx-auto">
+        {/* Hero & Search */}
         <section className="text-center mb-12">
           <h1 className="text-5xl md:text-7xl font-bold text-foreground">
-            <span className="bg-gradient-primary bg-clip-text text-transparent">Gapalytics</span><br />Market Gap Analysis
+            <span className="bg-gradient-primary bg-clip-text text-transparent">
+              Gapalytics
+            </span>
+            <br />
+            Market Gap Analysis
           </h1>
-          <p className="mt-4 text-xl text-muted-foreground">Discover untapped opportunities with AI insights.</p>
+          <p className="mt-4 text-xl text-muted-foreground">
+            Discover untapped opportunities with AI insights.
+          </p>
         </section>
         <section className="max-w-4xl mx-auto mb-16">
           <SearchBar onSearch={handleSearch} isLoading={isSearching} />
         </section>
+
+        {/* Stats */}
         <section className="grid md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-16">
           <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-card">
             <Target className="h-6 w-6 text-apple-blue mx-auto" />
             <p className="mt-2 text-2xl font-bold text-center">{totalCount}</p>
-            <p className="text-sm text-muted-foreground text-center">Opportunities</p>
+            <p className="text-sm text-muted-foreground text-center">
+              Opportunities
+            </p>
           </Card>
           <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-card">
             <TrendingUp className="h-6 w-6 text-apple-green mx-auto" />
-            <p className="mt-2 text-2xl font-bold text-center">${jobsToBeDone.reduce((sum,j)=>sum+parseFloat(j.marketSize.replace(/[^0-9.]/g,'')),0).toFixed(1)}B</p>
-            <p className="text-sm text-muted-foreground text-center">Market Value</p>
+            <p className="mt-2 text-2xl font-bold text-center">
+              ${jobsToBeDone
+                .reduce(
+                  (sum, j) => sum + parseFloat(j.marketSize.replace(/[^0-9.]/g, '')),
+                  0
+                )
+                .toFixed(1)}
+              B
+            </p>
+            <p className="text-sm text-muted-foreground text-center">
+              Market Value
+            </p>
           </Card>
           <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-card">
             <DollarSign className="h-6 w-6 text-apple-orange mx-auto" />
-            <p className="mt-2 text-2xl font-bold text-center">${(jobsToBeDone.reduce((sum,j)=>sum+parseFloat(j.profitPotential.revenue.replace(/[^0-9.]/g,'')),0)/totalCount).toFixed(0)}M</p>
-            <p className="text-sm text-muted-foreground text-center">Avg Revenue</p>
+            <p className="mt-2 text-2xl font-bold text-center">
+              $
+              {(
+                jobsToBeDone.reduce(
+                  (sum, j) =>
+                    sum + parseFloat(j.profitPotential.revenue.replace(/[^0-9.]/g, '')),
+                  0
+                ) / totalCount
+              ).toFixed(0)}
+              M
+            </p>
+            <p className="text-sm text-muted-foreground text-center">
+              Avg Revenue
+            </p>
           </Card>
           <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-card">
             <Lightbulb className="h-6 w-6 text-primary mx-auto" />
-            <p className="mt-2 text-2xl font-bold text-center">{industries.length}</p>
-            <p className="text-sm text-muted-foreground text-center">Industries</p>
+            <p className="mt-2 text-2xl font-bold text-center">
+              {industries.length}
+            </p>
+            <p className="text-sm text-muted-foreground text-center">
+              Industries
+            </p>
           </Card>
         </section>
+
+        {/* Tabs */}
         <section className="px-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-7xl mx-auto">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="max-w-7xl mx-auto"
+          >
             <TabsList className="grid grid-cols-3 mb-8">
-              <TabsTrigger value="opportunities">Opportunities{isShowingSearchResults && <Badge>{resultsCount}</Badge>}</TabsTrigger>
-              <TabsTrigger value="heatmap">Heatmap{searchAnalysis?.heatmapData?.length}</TabsTrigger>
-              <TabsTrigger value="insights">Insights{searchAnalysis?.marketGaps?.length}</TabsTrigger>
+              <TabsTrigger value="opportunities">
+                Opportunities
+                {isShowingSearchResults && <Badge>{resultsCount}</Badge>}
+              </TabsTrigger>
+              <TabsTrigger value="heatmap">
+                Market Heatmap
+                {searchAnalysis?.heatmapData?.length ? (
+                  <Badge>{searchAnalysis.heatmapData.length}</Badge>
+                ) : null}
+              </TabsTrigger>
+              <TabsTrigger value="insights">
+                AI Insights
+                {searchAnalysis?.marketGaps?.length ? (
+                  <Badge>{searchAnalysis.marketGaps.length}</Badge>
+                ) : null}
+              </TabsTrigger>
             </TabsList>
 
             {/* Opportunities Tab */}
             <TabsContent value="opportunities">
-              {searchAnalysis?.heatmapData && (
-                <div className="mb-8">
-                  <h2 className="text-2xl font-semibold mb-4">Industry Overviews</h2>
+              {industryInsights.length > 0 && (
+                <section className="mb-8">
+                  <h2 className="text-2xl font-semibold mb-4">
+                    Industry Overviews
+                  </h2>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {industryInsights.map(insight => (
-                      <Card key={insight.industry} className="p-6 bg-white/90 shadow-card">
-                        <h3 className="text-xl font-bold mb-2">{insight.industry}</h3>
-                        <p className="text-sm mb-1">Leading: {insight.leadingCompanies.join(', ')}</p>
-                        <p className="text-sm mb-2">Unsolved: {insight.unsolvedJobs.length}</p>
-                        <p className="font-medium">Revenue: ${insight.revenuePotential.toFixed(0)}M</p>
+                      <Card
+                        key={insight.industry}
+                        className="p-6 bg-white/90 shadow-card"
+                      >
+                        <h3 className="text-xl font-bold mb-2">
+                          {insight.industry}
+                        </h3>
+                        <p className="text-sm mb-1">
+                          Leading: {insight.leadingCompanies.join(', ')}
+                        </p>
+                        <p className="text-sm mb-2">
+                          Unsolved: {insight.unsolvedJobs.length}
+                        </p>
+                        <p className="font-medium">
+                          Revenue: ${insight.revenuePotential.toFixed(0)}M
+                        </p>
                       </Card>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredJobs.map(job => <JobCard key={job.id} job={job} onClick={setSelectedJob} />)}
+                {filteredJobs.map(job => (
+                  <JobCard key={job.id} job={job} onClick={setSelectedJob} />
+                ))}
               </div>
             </TabsContent>
 
             {/* Heatmap Tab */}
             <TabsContent value="heatmap">
-              <MarketHeatmap data={searchAnalysis?.heatmapData || []} title="Market Heatmap" />
+              <MarketHeatmap
+                data={searchAnalysis?.heatmapData || []}
+                title="Market Heatmap"
+              />
+
+              {industryInsights.length > 0 && (
+                <section className="mt-8">
+                  <h2 className="text-2xl font-semibold mb-4">
+                    Industry Overviews
+                  </h2>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {industryInsights.map(insight => (
+                      <Card
+                        key={insight.industry}
+                        className="p-6 bg-white/90 shadow-card"
+                      >
+                        <h3 className="text-xl font-bold mb-2">
+                          {insight.industry}
+                        </h3>
+                        <p className="text-sm mb-1">
+                          Leading: {insight.leadingCompanies.join(', ')}
+                        </p>
+                        <p className="text-sm mb-1">
+                          Unsolved Jobs: {insight.unsolvedJobs.length}
+                        </p>
+                        <ul className="list-disc list-inside mb-2">
+                          {insight.unsolvedJobs
+                            .slice(0, 3)
+                            .map(job => (
+                              <li key={job.id} className="text-sm">
+                                {job.title}
+                              </li>
+                            ))}
+                        </ul>
+                        <p className="font-medium">
+                          Revenue: ${insight.revenuePotential.toFixed(0)}M
+                        </p>
+                      </Card>
+                    ))}
+                  </div>
+                </section>
+              )}
             </TabsContent>
 
             {/* Insights Tab */}
@@ -206,7 +330,7 @@ const Index: FC = () => {
                 marketGaps={searchAnalysis?.marketGaps || []}
                 competitiveAnalysis={searchAnalysis?.competitiveAnalysis || { oversaturatedAreas: [], underservedAreas: [], emergingTrends: [], riskFactors: [] }}
                 allJobs={jobsToBeDone}
-                onGapClick={handleGapClick}
+                onGapClick={() => {}}
                 onCompetitiveAreaClick={() => {}}
               />
             </TabsContent>
@@ -214,7 +338,9 @@ const Index: FC = () => {
         </section>
 
         {/* Modals */}
-        {selectedJob && <JobDetails job={selectedJob} onClose={() => setSelectedJob(null)} />}
+        {selectedJob && (
+          <JobDetails job={selectedJob} onClose={() => setSelectedJob(null)} />
+        )}
         {selectedIndustryDrillDown && (
           <IndustryDrillDown
             industry={selectedIndustryDrillDown}
@@ -225,7 +351,9 @@ const Index: FC = () => {
         {selectedTechnologyDrillDown && (
           <TechnologyDrillDown
             technology={selectedTechnologyDrillDown}
-            jobs={jobsToBeDone.filter(j => j.tags.includes(selectedTechnologyDrillDown))}
+            jobs={jobsToBeDone.filter(j =>
+              j.tags.includes(selectedTechnologyDrillDown)
+            )}
             onClose={() => setSelectedTechnologyDrillDown(null)}
           />
         )}

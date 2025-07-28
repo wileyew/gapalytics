@@ -232,6 +232,43 @@ export const MarketInsights = ({
         )}
       </div>
 
+      {/* Competitor Companies by Industry */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold flex items-center gap-2">
+          <Building className="h-5 w-5 text-green-600" />
+          Competitor Companies
+        </h3>
+        {
+          (() => {
+            // Group competitors by industry
+            const industryMap = new Map<string, Competitor[]>();
+            allJobs.forEach(job => {
+              if (!industryMap.has(job.industry)) industryMap.set(job.industry, []);
+              job.competitors.forEach((comp: Competitor) => {
+                industryMap.get(job.industry)!.push(comp);
+              });
+            });
+            return Array.from(industryMap.entries()).map(([industry, competitors]) => {
+              // Deduplicate by company name
+              const uniqueCompetitors: Competitor[] = Array.from(new Map(competitors.map(c => [c.name, c])).values());
+              return (
+                <div key={industry} className="mb-4">
+                  <h4 className="text-lg font-bold mb-2">{industry}</h4>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {uniqueCompetitors.map((comp, idx) => (
+                      <Card key={comp.name + idx} className="p-4 flex flex-col gap-2">
+                        <div className="font-semibold">{comp.name}</div>
+                        <div className="text-sm text-muted-foreground">{comp.marketShare ? `Market Share: ${comp.marketShare}` : 'Market Share: N/A'}</div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              );
+            });
+          })()
+        }
+      </div>
+
       {/* Competitive Analysis */}
       <div className="space-y-4">
         <h3 className="text-xl font-semibold flex items-center gap-2">

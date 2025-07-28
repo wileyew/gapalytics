@@ -4,7 +4,6 @@ import { SearchBar } from '@/components/SearchBar';
 import { JobCard } from '@/components/JobCard';
 import { JobDetails } from '@/components/JobDetails';
 import { Header } from '@/components/Header';
-import { MarketHeatmap } from '@/components/MarketHeatmap';
 import { MarketInsights } from '@/components/MarketInsights';
 import { IndustryDrillDown } from '@/components/IndustryDrillDown';
 import { TechnologyDrillDown } from '@/components/TechnologyDrillDown';
@@ -244,12 +243,6 @@ const Index: FC = () => {
                   {isShowingSearchResults && <Badge>{resultsCount}</Badge>}
                 </TabsTrigger>
               )}
-              {searchAnalysis?.heatmapData?.length > 0 && isHeatmapConsistentWithGaps() && (
-                <TabsTrigger value="heatmap">
-                  Market Heatmap
-                  <Badge>{searchAnalysis.heatmapData.length}</Badge>
-                </TabsTrigger>
-              )}
               <TabsTrigger value="insights">
                 AI Insights
                 {searchAnalysis?.marketGaps?.length ? (
@@ -294,78 +287,6 @@ const Index: FC = () => {
                     <JobCard key={job.id} job={job} onClick={setSelectedJob} />
                   ))}
                 </div>
-              </TabsContent>
-            )}
-
-            {/* Heatmap Tab */}
-            {searchAnalysis?.heatmapData?.length > 0 && isHeatmapConsistentWithGaps() && (
-              <TabsContent value="heatmap">
-                <MarketHeatmap
-                  data={searchAnalysis.heatmapData}
-                  title="Market Heatmap"
-                />
-
-                {/* Companies and their competitive advantages/weaknesses for each heatmap item */}
-                <section className="mt-8">
-                  <h2 className="text-2xl font-semibold mb-4">Companies by Heatmap Area</h2>
-                  <div className="space-y-8">
-                    {searchAnalysis.heatmapData.map((item, idx) => {
-                      // Find all jobs in this area
-                      const jobs = jobsToBeDone.filter(job =>
-                        job.industry === item.industry &&
-                        (job.title === item.opportunity || job.title.toLowerCase().includes(item.opportunity.toLowerCase()))
-                      );
-                      // Collect all competitors, deduped by name
-                      const competitorsMap = new Map();
-                      jobs.forEach(job => {
-                        job.competitors.forEach(comp => {
-                          if (!competitorsMap.has(comp.name)) {
-                            competitorsMap.set(comp.name, comp);
-                          }
-                        });
-                      });
-                      const competitors = Array.from(competitorsMap.values());
-                      return (
-                        <Card key={item.industry + item.opportunity + idx} className="p-6 bg-white/90 shadow-card">
-                          <h3 className="text-lg font-bold mb-4">{item.industry} — {item.opportunity}</h3>
-                          {competitors.length > 0 ? (
-                            <div className="space-y-6">
-                              {competitors.map((comp, cidx) => (
-                                <div key={comp.name + cidx} className="border-b pb-4 last:border-b-0 last:pb-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-semibold text-base">{comp.name}</span>
-                                    <span className="text-xs text-muted-foreground">{comp.marketShare ? `(${comp.marketShare} market share)` : ''}</span>
-                                  </div>
-                                  <div className="text-sm text-muted-foreground mb-2">{comp.description}</div>
-                                  <div className="flex flex-wrap gap-4">
-                                    <div>
-                                      <div className="font-medium text-green-700 mb-1">Competitive Advantage</div>
-                                      <ul className="list-disc list-inside text-sm text-green-800">
-                                        {comp.strengths.map((s, i) => (
-                                          <li key={i}>{s}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                    <div>
-                                      <div className="font-medium text-red-700 mb-1">Not Solving For</div>
-                                      <ul className="list-disc list-inside text-sm text-red-800">
-                                        {comp.weaknesses.map((w, i) => (
-                                          <li key={i}>{w}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-muted-foreground text-sm">No companies found for this area.</p>
-                          )}
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </section>
               </TabsContent>
             )}
 

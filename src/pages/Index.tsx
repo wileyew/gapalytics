@@ -229,12 +229,12 @@ const Index: FC = () => {
                   {isShowingSearchResults && <Badge>{resultsCount}</Badge>}
                 </TabsTrigger>
               )}
-              <TabsTrigger value="heatmap">
-                Market Heatmap
-                {searchAnalysis?.heatmapData?.length ? (
+              {searchAnalysis?.heatmapData?.length > 0 && (
+                <TabsTrigger value="heatmap">
+                  Market Heatmap
                   <Badge>{searchAnalysis.heatmapData.length}</Badge>
-                ) : null}
-              </TabsTrigger>
+                </TabsTrigger>
+              )}
               <TabsTrigger value="insights">
                 AI Insights
                 {searchAnalysis?.marketGaps?.length ? (
@@ -283,14 +283,14 @@ const Index: FC = () => {
             )}
 
             {/* Heatmap Tab */}
-            <TabsContent value="heatmap">
-              <MarketHeatmap
-                data={searchAnalysis?.heatmapData || []}
-                title="Market Heatmap"
-              />
+            {searchAnalysis?.heatmapData?.length > 0 && (
+              <TabsContent value="heatmap">
+                <MarketHeatmap
+                  data={searchAnalysis.heatmapData}
+                  title="Market Heatmap"
+                />
 
-              {/* Companies and their competitive advantages/weaknesses for each heatmap item */}
-              {searchAnalysis?.heatmapData?.length > 0 && (
+                {/* Companies and their competitive advantages/weaknesses for each heatmap item */}
                 <section className="mt-8">
                   <h2 className="text-2xl font-semibold mb-4">Companies by Heatmap Area</h2>
                   <div className="space-y-8">
@@ -351,8 +351,8 @@ const Index: FC = () => {
                     })}
                   </div>
                 </section>
-              )}
-            </TabsContent>
+              </TabsContent>
+            )}
 
             {/* Insights Tab */}
             <TabsContent value="insights">

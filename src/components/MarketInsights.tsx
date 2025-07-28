@@ -37,7 +37,7 @@ export const MarketInsights = ({
       return {
         id: `gap-${index + 1}`,
         title: gap,
-        description: `Market opportunity for ${gap.toLowerCase()}`,
+        description: `Market gap in ${gap.toLowerCase()}`,
         gapSize: 7,
         urgency: 6,
         difficulty: 5,
@@ -173,7 +173,7 @@ export const MarketInsights = ({
                           <div className="flex items-center gap-2 mt-3">
                             <Users className="h-4 w-4 text-blue-500" />
                             <span className="text-sm text-blue-600">
-                              {relatedJobs.length} related opportunity{relatedJobs.length !== 1 ? 'ies' : 'y'}
+                              {relatedJobs.length} related opportunities
                             </span>
                           </div>
                         )}

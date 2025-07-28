@@ -138,6 +138,21 @@ const Index: FC = () => {
     }
   };
 
+  // Helper to check if heatmap and market gaps are consistent
+  const isHeatmapConsistentWithGaps = () => {
+    if (!searchAnalysis?.heatmapData?.length || !searchAnalysis?.marketGaps?.length) return false;
+    // Extract keywords from market gap titles and descriptions
+    const gapKeywords = searchAnalysis.marketGaps.flatMap(gap => {
+      const title = typeof gap === 'string' ? gap : gap.title;
+      const description = typeof gap === 'string' ? '' : gap.description;
+      return (title + ' ' + description).toLowerCase().split(/\W+/).filter(Boolean);
+    });
+    // Check if any heatmap opportunity matches a gap keyword
+    return searchAnalysis.heatmapData.some(hm =>
+      gapKeywords.some(kw => hm.opportunity.toLowerCase().includes(kw))
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-hero relative">
       <Header />
@@ -229,7 +244,7 @@ const Index: FC = () => {
                   {isShowingSearchResults && <Badge>{resultsCount}</Badge>}
                 </TabsTrigger>
               )}
-              {searchAnalysis?.heatmapData?.length > 0 && (
+              {searchAnalysis?.heatmapData?.length > 0 && isHeatmapConsistentWithGaps() && (
                 <TabsTrigger value="heatmap">
                   Market Heatmap
                   <Badge>{searchAnalysis.heatmapData.length}</Badge>
@@ -283,7 +298,7 @@ const Index: FC = () => {
             )}
 
             {/* Heatmap Tab */}
-            {searchAnalysis?.heatmapData?.length > 0 && (
+            {searchAnalysis?.heatmapData?.length > 0 && isHeatmapConsistentWithGaps() && (
               <TabsContent value="heatmap">
                 <MarketHeatmap
                   data={searchAnalysis.heatmapData}

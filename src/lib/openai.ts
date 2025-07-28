@@ -251,11 +251,12 @@ const fallbackAnalysis = (query: string, opportunities: JobToBeDone[]): SearchAn
   const heatmapData = generateFallbackHeatmapData(relevantOpportunities);
   
   // Generate simple market gap suggestions
+  const mainKeywords = query.split(' ').filter(Boolean).slice(0, 5).join(' ');
   const marketGaps: MarketGap[] = [
     {
       id: 'gap-1',
-      title: `Enhanced ${query} Solutions`,
-      description: `Market opportunity for improved solutions in the ${query} space`,
+      title: mainKeywords,
+      description: `Market gap in ${mainKeywords}`,
       gapSize: 7,
       urgency: 6,
       difficulty: 5,

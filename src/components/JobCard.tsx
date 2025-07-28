@@ -50,9 +50,22 @@ export const JobCard = ({ job, onClick }: JobCardProps) => {
               {job.difficulty} Difficulty
             </Badge>
           </div>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            {job.description}
-          </p>
+        </div>
+
+        {/* Desired Outcome */}
+        <div className="mb-2">
+          <p className="text-xs font-semibold text-apple-blue uppercase tracking-wide mb-1">Desired Outcome</p>
+          <p className="text-muted-foreground text-sm leading-relaxed">{job.description}</p>
+        </div>
+
+        {/* Features to Build */}
+        <div className="mb-2">
+          <p className="text-xs font-semibold text-apple-green uppercase tracking-wide mb-1">Features to Build</p>
+          <ul className="list-disc list-inside text-sm text-foreground">
+            {job.requiredFunctionalities.map((feature, idx) => (
+              <li key={idx}>{feature}</li>
+            ))}
+          </ul>
         </div>
 
         {/* Metrics */}
